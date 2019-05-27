@@ -113,7 +113,7 @@ let declare_attributes l =
   List.iter (fun (n,c) -> declare_attribute n c) l
 
 let class_of_attribute = function
-  | AConst | AVolatile | ARestrict -> Attr_type
+  | AConst | AVolatile | ASecret | ARestrict -> Attr_type
   | AAlignas _ -> Attr_object
   | Attr(name, args) ->
       try Hashtbl.find attr_class (normalize_attrname name)
@@ -124,6 +124,7 @@ let class_of_attribute = function
 let name_of_attribute = function
   | AConst -> "const"
   | AVolatile -> "volatile"
+  | ASecret -> "secret"
   | ARestrict -> "restrict"
   | AAlignas n -> "_Alignas"
   | Attr(name, _) ->  name
@@ -132,7 +133,7 @@ let name_of_attribute = function
 
 let attr_is_standard = function
   | AConst | AVolatile | ARestrict -> true
-  | AAlignas _ | Attr _ -> false
+  | AAlignas _ | Attr _ | ASecret -> false
 
 (* Is an attribute applicable to a whole array (true) or only to
    array elements (false)? *)
@@ -145,7 +146,7 @@ let attr_array_applicable a =
 
 let attr_inherited_by_members = function
   | AConst | AVolatile | ARestrict -> true
-  | AAlignas _ | Attr _ -> false
+  | AAlignas _ | Attr _ | ASecret -> false
 
 (* Adding top-level attributes to a type.  Doesn't need to unroll defns. *)
 (* For array types, standard attrs are pushed to the element type. *)

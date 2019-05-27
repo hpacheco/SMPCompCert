@@ -23,18 +23,11 @@ module SSet = Set.Make(String)
 let lexicon : (string, Cabs.cabsloc -> token) Hashtbl.t = Hashtbl.create 17
 let ignored_keywords : SSet.t ref = ref SSet.empty
 
-let reserved_keyword loc id =
-  Diagnostics.fatal_error (loc.Cabs.filename, loc.Cabs.lineno)
-    "illegal use of reserved keyword `%s'" id
-
 let () =
   List.iter (fun (key, builder) -> Hashtbl.add lexicon key builder)
-    [ 
-      ("_Alignas", fun loc -> ALIGNAS loc);
+    [ ("_Alignas", fun loc -> ALIGNAS loc);
       ("_Alignof", fun loc -> ALIGNOF loc);
       ("_Bool", fun loc -> UNDERSCORE_BOOL loc);
-      ("_Complex", fun loc -> reserved_keyword loc "_Complex");
-      ("_Imaginary", fun loc -> reserved_keyword loc "_Imaginary");
       ("__alignof", fun loc -> ALIGNOF loc);
       ("__alignof__", fun loc -> ALIGNOF loc);
       ("__asm", fun loc -> ASM loc);
@@ -89,6 +82,7 @@ let () =
       ("unsigned", fun loc -> UNSIGNED loc);
       ("void", fun loc -> VOID loc);
       ("volatile", fun loc -> VOLATILE loc);
+      ("secret", fun loc -> SECRET loc);
       ("while", fun loc -> WHILE loc)];
   if Configuration.system <> "diab" then
     (* We can ignore the __extension__ GCC keyword. *)
@@ -615,6 +609,7 @@ and singleline_comment = parse
       | UNSIGNED loc -> loop UNSIGNED't loc
       | VOID loc -> loop VOID't loc
       | VOLATILE loc -> loop VOLATILE't loc
+      | SECRET loc -> loop SECRET't loc
       | WHILE loc -> loop WHILE't loc
       | XOR_ASSIGN loc -> loop XOR_ASSIGN't loc
       | ALIGNAS loc -> loop ALIGNAS't loc

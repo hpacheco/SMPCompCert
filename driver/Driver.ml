@@ -54,10 +54,18 @@ let compile_c_file sourcename ifile ofile =
   set_dest AsmToJSON.destination option_sdump !sdump_suffix;
   (* Parse the ast *)
   let csyntax = parse_c_file sourcename ifile in
+  (* hpacheco: Typecheck *)
+  let csyntax1 =
+    match (Ctyping.typecheck_program csyntax) with
+    | Errors.OK csyntax1 ->
+        csyntax1
+    | Errors.Error msg ->
+      let loc = file_loc sourcename in
+        fatal_error loc "%a"  print_error msg in
   (* Convert to Asm *)
   let asm =
     match Compiler.apply_partial
-               (Compiler.transf_c_program csyntax)
+               (Compiler.transf_c_program csyntax1)
                Asmexpand.expand_program with
     | Errors.OK asm ->
         asm

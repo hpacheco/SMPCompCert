@@ -50,10 +50,11 @@ Inductive floatsize : Type :=
 
 Record attr : Type := mk_attr {
   attr_volatile: bool;
-  attr_alignas: option N         (**r log2 of required alignment *)
+  attr_alignas: option N;         (**r log2 of required alignment *)
+  attr_secret:bool
 }.
 
-Definition noattr := {| attr_volatile := false; attr_alignas := None |}.
+Definition noattr := {| attr_volatile := false; attr_alignas := None; attr_secret := false |}.
 
 (** The syntax of type expressions.  Some points to note:
 - Array types [Tarray n] carry the size [n] of the array.
@@ -89,7 +90,7 @@ Proof.
   assert (forall (x y: signedness), {x=y} + {x<>y}) by decide equality.
   assert (forall (x y: floatsize), {x=y} + {x<>y}) by decide equality.
   assert (forall (x y: attr), {x=y} + {x<>y}).
-  { decide equality. decide equality. apply N.eq_dec. apply bool_dec. }
+  { decide equality. decide equality. decide equality. apply N.eq_dec. apply bool_dec. }
   generalize ident_eq zeq bool_dec ident_eq intsize_eq; intros.
   decide equality.
   decide equality.
@@ -142,7 +143,8 @@ Definition attr_union (a1 a2: attr) : attr :=
        | None, al => al
        | al, None => al
        | Some n1, Some n2 => Some (N.max n1 n2)
-       end
+       end;
+     attr_secret := a1.(attr_secret) || a2.(attr_secret)
   |}.
 
 Definition merge_attributes (ty: type) (a: attr) : type :=
@@ -165,7 +167,7 @@ Definition name_composite_def (c: composite_definition) : ident :=
 Definition composite_def_eq (x y: composite_definition): {x=y} + {x<>y}.
 Proof.
   decide equality.
-- decide equality. decide equality. apply N.eq_dec. apply bool_dec.
+- decide equality. decide equality. decide equality. apply N.eq_dec. apply bool_dec.
 - apply list_eq_dec. decide equality. apply type_eq. apply ident_eq.
 - decide equality.
 - apply ident_eq.

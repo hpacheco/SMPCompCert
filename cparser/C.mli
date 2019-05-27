@@ -76,6 +76,7 @@ type attr_arg =
 type attribute =
   | AConst
   | AVolatile
+  | ASecret
   | ARestrict
   | AAlignas of int                     (* always a power of 2 *)
   | Attr of string * attr_arg list

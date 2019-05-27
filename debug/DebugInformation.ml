@@ -60,7 +60,7 @@ let typ_to_string ty =
   s
 
 (* Helper functions for the attributes *)
-let strip_attributes typ = strip_attributes_type typ [AConst; AVolatile]
+let strip_attributes typ = strip_attributes_type typ [AConst; AVolatile; ASecret]
 
 (* Find the type id to an type *)
 let find_type ty =
@@ -178,6 +178,10 @@ let insert_type ty =
             let id = attr_aux t in
             let volatile = {vol_type = id} in
             insert (VolatileType volatile) ty
+        | Some ASecret,t ->
+            let id = attr_aux t in
+            let secret = {sec_type = id} in
+            insert (SecretType secret) ty
         | Some (ARestrict|AAlignas _| Attr(_,_)),t ->
             attr_aux t
         | None,t -> typ_aux t

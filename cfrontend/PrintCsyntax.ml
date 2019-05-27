@@ -71,10 +71,11 @@ let name_longtype sg =
 
 let attributes a =
   let s1 = if a.attr_volatile then " volatile" else "" in
+  let s2 = if a.attr_secret then " secret" else "" in
   match a.attr_alignas with
-  | None -> s1
+  | None -> sprintf "%s %s" s1 s2
   | Some l ->
-      sprintf " _Alignas(%Ld)%s" (Int64.shift_left 1L (N.to_int l)) s1
+      sprintf " _Alignas(%Ld)%s %s" (Int64.shift_left 1L (N.to_int l)) s1 s2
 
 let attributes_space a =
   let s = attributes a in
@@ -100,7 +101,7 @@ let rec name_cdecl id ty =
         | _                      -> sprintf "*%s%s" (attributes_space a) id in
       name_cdecl id' t
   | Tarray(t, n, a) ->
-      name_cdecl (sprintf "%s[%ld]" id (camlint_of_coqint n)) t
+      name_cdecl (sprintf "%s[%s %ld]" id (attributes_space a) (camlint_of_coqint n)) t
   | Tfunction(args, res, cconv) ->
       let b = Buffer.create 20 in
       if id = ""

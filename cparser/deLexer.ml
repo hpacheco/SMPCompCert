@@ -34,6 +34,7 @@ let delex (symbol : string) : string =
   | "RESTRICT" -> "restrict"
   | "SIGNED" -> "signed"
   | "VOLATILE" -> "volatile"
+  | "SECRET" -> "secret"
   | "AUTO" -> "auto"
   | "BREAK" -> "break"
   | "CASE" -> "case"

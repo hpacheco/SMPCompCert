@@ -57,7 +57,7 @@ with storage :=
   AUTO | STATIC | EXTERN | REGISTER | TYPEDEF
 
 with cvspec :=
-| CV_CONST | CV_VOLATILE | CV_RESTRICT
+| CV_CONST | CV_VOLATILE | CV_SECRET | CV_RESTRICT
 | CV_ATTR : attribute -> cvspec
 
 with funspec :=

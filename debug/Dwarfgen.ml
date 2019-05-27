@@ -182,6 +182,8 @@ module Dwarfgenaux (Target: TARGET) =
 
     let volatile_to_entry id v =
       new_entry id (DW_TAG_volatile_type ({volatile_type = v.vol_type}))
+    let secret_to_entry id v =
+      new_entry id (DW_TAG_secret_type ({secret_type = v.sec_type}))
 
     let enum_to_entry id e =
       let enumerator_to_entry e =
@@ -279,6 +281,7 @@ module Dwarfgenaux (Target: TARGET) =
       | Typedef t -> typedef_to_entry id t
       | ConstType c -> const_to_entry id c
       | VolatileType v -> volatile_to_entry id v
+      | SecretType v -> secret_to_entry id v
       | Void -> void_to_entry id
 
     let needs_types id d =
@@ -303,6 +306,8 @@ module Dwarfgenaux (Target: TARGET) =
           add_type c.cst_type d
       | VolatileType v ->
           add_type v.vol_type d
+      | SecretType v ->
+          add_type v.sec_type d
       | FunctionType f ->
           let d,c = match f.fun_type_return_type with
           | Some t -> add_type t d

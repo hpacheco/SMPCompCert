@@ -229,6 +229,9 @@ module DwarfPrinter(Target: DWARF_TARGET):
           add_type buf
       | DW_TAG_volatile_type _ ->
           prologue 0x35 "DW_TAG_volatile_type";
+          add_type buf
+      | DW_TAG_secret_type _ ->
+          prologue 0x36 "DW_TAG_secret_type";
           add_type buf);
       Buffer.contents buf
 
@@ -545,6 +548,8 @@ module DwarfPrinter(Target: DWARF_TARGET):
 
     let print_volatile_type oc vt =
       print_ref oc "DW_AT_type" vt.volatile_type
+    let print_secret_type oc vt =
+      print_ref oc "DW_AT_type" vt.secret_type
 
     (* Print an debug entry *)
     let  print_entry oc entry =
@@ -581,6 +586,7 @@ module DwarfPrinter(Target: DWARF_TARGET):
           | DW_TAG_unspecified_parameter up -> print_unspecified_parameter oc up
           | DW_TAG_variable var -> print_variable oc var
           | DW_TAG_volatile_type vt -> print_volatile_type oc vt
+          | DW_TAG_secret_type vt -> print_secret_type oc vt
         end) (fun e ->
           if e.children <> [] then
           print_sleb128 oc "End Of Children Mark" 0) entry

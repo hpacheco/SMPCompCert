@@ -232,6 +232,10 @@ type dw_tag_volatile_type =
     {
      volatile_type: reference;
    }
+type dw_tag_secret_type =
+    {
+     secret_type: reference;
+   }
 
 type dw_tag =
   | DW_TAG_array_type of dw_tag_array_type
@@ -254,6 +258,7 @@ type dw_tag =
   | DW_TAG_unspecified_parameter of dw_tag_unspecified_parameter
   | DW_TAG_variable of dw_tag_variable
   | DW_TAG_volatile_type of dw_tag_volatile_type
+  | DW_TAG_secret_type of dw_tag_secret_type
 
 (* The type of the entries. *)
 

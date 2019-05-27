@@ -49,6 +49,9 @@ type const_type = {
 type volatile_type = {
     vol_type: int
   }
+type secret_type = {
+    sec_type: int
+  }
 
 
 type array_type = {
@@ -104,6 +107,7 @@ type debug_types =
   | Typedef of typedef
   | ConstType of const_type
   | VolatileType of volatile_type
+  | SecretType of secret_type
   | Void
 
 (* Types for global definitions *)

@@ -130,6 +130,7 @@ let string_of_dw_tag = function
   | DW_TAG_unspecified_parameter _ -> "DW_TAG_unspecified_parameter"
   | DW_TAG_variable _ -> "DW_TAG_variable"
   | DW_TAG_volatile_type _ -> "DW_TAG_volatile_type"
+  | DW_TAG_secret_type _ -> "DW_TAG_secret_type"
 
 (* Sizeof functions for the encoding of uleb128 and sleb128 *)
 let sizeof_uleb128 value =

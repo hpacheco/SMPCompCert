@@ -40,7 +40,8 @@ Definition ptrdiff_t : type :=
 
 Definition attr_add_volatile (vol: bool) (a: attr) :=
   {| attr_volatile := a.(attr_volatile) || vol;
-     attr_alignas  := a.(attr_alignas) |}.
+     attr_alignas  := a.(attr_alignas);
+     attr_secret   := a.(attr_secret) |}.
 
 Definition type_of_member (a: attr) (f: ident) (m: members) : res type :=
   do ty <- field_type f m;
@@ -157,7 +158,8 @@ Definition attr_combine (a1 a2: attr) : attr :=
        | None, al2 => al2
        | al1, None => al1
        | Some n1, Some n2 => Some (N.max n1 n2)
-       end
+       end;
+     attr_secret := a1.(attr_secret) || a2.(attr_secret)
   |}.
 
 Definition intsize_eq: forall (x y: intsize), {x=y} + {x<>y}.

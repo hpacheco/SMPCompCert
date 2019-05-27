@@ -507,6 +507,7 @@ let rec log2 n = if n = 1 then 0 else 1 + log2 (n lsr 1)
 
 let convertAttr a =
   { attr_volatile = List.mem AVolatile a;
+    attr_secret = List.mem ASecret a;
     attr_alignas =
       let n = Cutil.alignas_attribute a in
       if n > 0 then Some (N.of_int (log2 n)) else None }

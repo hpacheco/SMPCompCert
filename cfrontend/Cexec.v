@@ -763,7 +763,7 @@ Fixpoint step_expr (k: kind) (a: expr) (m: mem): reducts expr :=
       match is_val r1 with
       | Some(v1, ty1) =>
           do b <- bool_val v1 ty1 m;
-          if b then topred (Rred "red_seqand_true" (Eparen r2 type_bool ty) m E0)
+          if b then topred (Rred "red_seqand_true" (Eparen r2 (type_sbool (type_is_secret ty)) ty) m E0)
                else topred (Rred "red_seqand_false" (Eval (Vint Int.zero) ty) m E0)
       | None =>
           incontext (fun x => Eseqand x r2 ty) (step_expr RV r1 m)
@@ -773,7 +773,7 @@ Fixpoint step_expr (k: kind) (a: expr) (m: mem): reducts expr :=
       | Some(v1, ty1) =>
           do b <- bool_val v1 ty1 m;
           if b then topred (Rred "red_seqor_true" (Eval (Vint Int.one) ty) m E0)
-               else topred (Rred "red_seqor_false" (Eparen r2 type_bool ty) m E0)
+               else topred (Rred "red_seqor_false" (Eparen r2 (type_sbool (type_is_secret ty)) ty) m E0)
       | None =>
           incontext (fun x => Eseqor x r2 ty) (step_expr RV r1 m)
       end
@@ -820,7 +820,7 @@ Fixpoint step_expr (k: kind) (a: expr) (m: mem): reducts expr :=
           let op := match id with Incr => Oadd | Decr => Osub end in
           let r' :=
             Ecomma (Eassign (Eloc b ofs ty)
-                           (Ebinop op (Eval v1 ty) (Eval (Vint Int.one) type_int32s) (incrdecr_type ty))
+                           (Ebinop op (Eval v1 ty) (Eval (Vint Int.one) type_pint32s) (incrdecr_type ty))
                            ty)
                    (Eval v1 ty) ty in
           topred (Rred "red_postincr" r' m t)
@@ -2200,7 +2200,7 @@ Definition do_initial_state (p: program): option (genv * state) :=
   do m0 <- Genv.init_mem p;
   do b <- Genv.find_symbol ge p.(prog_main);
   do f <- Genv.find_funct_ptr ge b;
-  check (type_eq (type_of_fundef f) (Tfunction Tnil type_int32s cc_default));
+  check (type_eq (type_of_fundef f) (Tfunction Tnil type_pint32s cc_default));
   Some (ge, Callstate f nil Kstop m0).
 
 Definition at_final_state (S: state): option int :=

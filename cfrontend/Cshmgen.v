@@ -227,7 +227,7 @@ Definition make_notint (e: expr) (ty: type) :=
 Definition make_binarith (iop iopu fop sop lop lopu: binary_operation)
                          (e1: expr) (ty1: type) (e2: expr) (ty2: type) :=
   let c := classify_binarith ty1 ty2 in
-  let ty := binarith_type c in
+  let ty := binarith_type ty1 ty2 c in
   do e1' <- make_cast ty1 ty e1;
   do e2' <- make_cast ty2 ty e2;
   match c with
@@ -306,7 +306,7 @@ Definition make_div (e1: expr) (ty1: type) (e2: expr) (ty2: type) :=
 Definition make_binarith_int (iop iopu lop lopu: binary_operation)
                              (e1: expr) (ty1: type) (e2: expr) (ty2: type) :=
   let c := classify_binarith ty1 ty2 in
-  let ty := binarith_type c in
+  let ty := binarith_type ty1 ty2 c in
   do e1' <- make_cast ty1 ty e1;
   do e2' <- make_cast ty2 ty e2;
   match c with

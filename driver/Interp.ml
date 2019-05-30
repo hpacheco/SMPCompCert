@@ -589,12 +589,12 @@ let world_program prog =
 
 let change_main_function p old_main old_main_ty =
   let old_main = Evalof(Evar(old_main, old_main_ty), old_main_ty) in
-  let arg1 = Eval(Vint(coqint_of_camlint 0l), type_int32s) in
+  let arg1 = Eval(Vint(coqint_of_camlint 0l), type_pint32s) in
   let arg2 = arg1 in
   let body =
-    Sreturn(Some(Ecall(old_main, Econs(arg1, Econs(arg2, Enil)), type_int32s))) in
+    Sreturn(Some(Ecall(old_main, Econs(arg1, Econs(arg2, Enil)), type_pint32s))) in
   let new_main_fn =
-    { fn_return = type_int32s; fn_callconv = cc_default;
+    { fn_return = type_pint32s; fn_callconv = cc_default;
       fn_params = []; fn_vars = []; fn_body = body } in
   let new_main_id = intern_string "___main" in
   { prog_main = new_main_id;

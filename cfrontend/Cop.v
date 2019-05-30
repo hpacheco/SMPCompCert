@@ -575,12 +575,12 @@ Definition classify_binarith (ty1: type) (ty2: type) : binarith_cases :=
 (** The static type of the result. Both arguments are converted to this type
     before the actual computation. *)
 
-Definition binarith_type (c: binarith_cases) : type :=
+Definition binarith_type (ty1 ty2: type) (c: binarith_cases) : type :=
   match c with
-  | bin_case_i sg => Tint I32 sg (noattr)
-  | bin_case_l sg => Tlong sg (noattr)
-  | bin_case_f   => Tfloat F64 (noattr)
-  | bin_case_s   => Tfloat F32 (noattr)
+  | bin_case_i sg => Tint I32 sg (snoattr (type_is_secret ty1 || type_is_secret ty2))
+  | bin_case_l sg => Tlong sg (snoattr (type_is_secret ty1 || type_is_secret ty2))
+  | bin_case_f   => Tfloat F64 (snoattr (type_is_secret ty1 || type_is_secret ty2))
+  | bin_case_s   => Tfloat F32 (snoattr (type_is_secret ty1 || type_is_secret ty2))
   | bin_default   => Tvoid
   end.
 
@@ -591,7 +591,7 @@ Definition sem_binarith
     (sem_single: float32 -> float32 -> option val)
     (v1: val) (t1: type) (v2: val) (t2: type) (m: mem): option val :=
   let c := classify_binarith t1 t2 in
-  let t := binarith_type c in
+  let t := binarith_type t1 t2 c in
   match sem_cast v1 t1 t m with
   | None => None
   | Some v1' =>
@@ -1070,16 +1070,16 @@ Definition sem_binary_operation
 
 Definition sem_incrdecr (cenv: composite_env) (id: incr_or_decr) (v: val) (ty: type) (m: mem) :=
   match id with
-  | Incr => sem_add cenv v ty (Vint Int.one) (type_int32s) m
-  | Decr => sem_sub cenv v ty (Vint Int.one) (type_int32s) m
+  | Incr => sem_add cenv v ty (Vint Int.one) (type_pint32s) m
+  | Decr => sem_sub cenv v ty (Vint Int.one) (type_pint32s) m
   end.
 
 Definition incrdecr_type (ty: type) :=
   match typeconv ty with
   | Tpointer ty a => Tpointer ty a
-  | Tint sz sg a => Tint sz sg (noattr)
-  | Tlong sg a => Tlong sg (noattr)
-  | Tfloat sz a => Tfloat sz (noattr)
+  | Tint sz sg a => Tint sz sg (snoattr (type_is_secret ty))
+  | Tlong sg a => Tlong sg (snoattr (type_is_secret ty))
+  | Tfloat sz a => Tfloat sz (snoattr (type_is_secret ty))
   | _ => Tvoid
   end.
 
@@ -1215,7 +1215,7 @@ Proof.
   }
   unfold sem_binarith in *.
   set (c := classify_binarith t1 t2) in *.
-  set (t := binarith_type c) in *.
+  set (t := binarith_type t1 t2 c) in *.
   destruct (sem_cast v1 t1 t m) as [w1|] eqn:C1; try discriminate.
   destruct (sem_cast v2 t2 t m) as [w2|] eqn:C2; try discriminate.
   exploit (sem_cast_inj v1); eauto. intros (w1' & C1' & INJ1).
@@ -1421,8 +1421,8 @@ Qed.
 (** Relation between Boolean value and casting to [_Bool] type. *)
 
 Lemma cast_bool_bool_val:
-  forall v t m,
-  sem_cast v t (Tint IBool Signed noattr ) m =
+  forall v t m sec,
+  sem_cast v t (Tint IBool Signed (snoattr sec)) m =
   match bool_val v t m with None => None | Some b => Some(Val.of_bool b) end.
   intros.
   assert (A: classify_bool t =
@@ -1716,21 +1716,21 @@ Definition usual_arithmetic_conversion (t1 t2: arith_type) : arith_type :=
 
 Definition proj_type (t: arith_type) : type :=
   match t with
-  | I _Bool => Tint IBool Unsigned (noattr)
-  | I Char => Tint I8 Unsigned (noattr)
-  | I SChar => Tint I8 Signed (noattr)
-  | I UChar => Tint I8 Unsigned (noattr)
-  | I Short => Tint I16 Signed (noattr)
-  | I UShort => Tint I16 Unsigned (noattr)
-  | I Int => Tint I32 Signed (noattr)
-  | I UInt => Tint I32 Unsigned (noattr)
-  | I Long => Tint I32 Signed (noattr)
-  | I ULong => Tint I32 Unsigned (noattr)
-  | I Longlong => Tlong Signed (noattr)
-  | I ULonglong => Tlong Unsigned (noattr)
-  | Float => Tfloat F32 (noattr)
-  | Double => Tfloat F64 (noattr)
-  | Longdouble => Tfloat F64 (noattr)
+  | I _Bool => Tint IBool Unsigned (pnoattr)
+  | I Char => Tint I8 Unsigned (pnoattr)
+  | I SChar => Tint I8 Signed (pnoattr)
+  | I UChar => Tint I8 Unsigned (pnoattr)
+  | I Short => Tint I16 Signed (pnoattr)
+  | I UShort => Tint I16 Unsigned (pnoattr)
+  | I Int => Tint I32 Signed (pnoattr)
+  | I UInt => Tint I32 Unsigned (pnoattr)
+  | I Long => Tint I32 Signed (pnoattr)
+  | I ULong => Tint I32 Unsigned (pnoattr)
+  | I Longlong => Tlong Signed (pnoattr)
+  | I ULonglong => Tlong Unsigned (pnoattr)
+  | Float => Tfloat F32 (pnoattr)
+  | Double => Tfloat F64 (pnoattr)
+  | Longdouble => Tfloat F64 (pnoattr)
   end.
 
 (** Relation between [typeconv] and integer promotion. *)
@@ -1745,7 +1745,7 @@ Qed.
 
 Lemma classify_binarith_arithmetic_conversion:
   forall t1 t2,
-  binarith_type (classify_binarith (proj_type t1) (proj_type t2)) =
+  binarith_type (proj_type t1) (proj_type t2) (classify_binarith (proj_type t1) (proj_type t2)) =
   proj_type (usual_arithmetic_conversion t1 t2).
 Proof.
   destruct t1; destruct t2; try reflexivity.

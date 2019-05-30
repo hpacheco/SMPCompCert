@@ -90,15 +90,15 @@ Some C expressions are derived forms.  Array access [r1[r2]] is expressed
 as [*(r1 + r2)].
 *)
 
-Definition Eindex (r1 r2: expr) (ty: type) :=
-  Ederef (Ebinop Oadd r1 r2 (Tpointer ty noattr)) ty.
+(*Definition Eindex (r1 r2: expr) (ty: type) :=
+  Ederef (Ebinop Oadd r1 r2 (Tpointer ty snoattr)) ty.*)
 
 (** Pre-increment [++l] and pre-decrement [--l] are expressed as
     [l += 1] and [l -= 1], respectively. *)
 
 Definition Epreincr (id: incr_or_decr) (l: expr) (ty: type) :=
   Eassignop (match id with Incr => Oadd | Decr => Osub end)
-            l (Eval (Vint Int.one) (type_int32s)) (typeconv ty) ty.
+            l (Eval (Vint Int.one) (type_pint32s)) (typeconv ty) ty.
 
 (** Extract the type part of a type-annotated expression. *)
 

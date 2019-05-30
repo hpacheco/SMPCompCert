@@ -579,7 +579,7 @@ Proof.
   red; unfold make_binarith, sem_binarith;
   intros until m; intros SEM MAKE EV1 EV2.
   set (cls := classify_binarith tya tyb) in *.
-  set (ty := binarith_type cls) in *.
+  set (ty := binarith_type tya tyb cls) in *.
   monadInv MAKE.
   destruct (sem_cast va tya ty m) as [va'|] eqn:Ca; try discriminate.
   destruct (sem_cast vb tyb ty m) as [vb'|] eqn:Cb; try discriminate.
@@ -602,7 +602,7 @@ Proof.
   red; unfold make_binarith_int, sem_binarith;
   intros until m; intros SEM MAKE EV1 EV2.
   set (cls := classify_binarith tya tyb) in *.
-  set (ty := binarith_type cls) in *.
+  set (ty := binarith_type tya tyb cls) in *.
   monadInv MAKE.
   destruct (sem_cast va tya ty m) as [va'|] eqn:Ca; try discriminate.
   destruct (sem_cast vb tyb ty m) as [vb'|] eqn:Cb; try discriminate.
@@ -1762,7 +1762,7 @@ Proof.
   exploit function_ptr_translated; eauto. intros (cu & tf & A & B & C).
   assert (D: Genv.find_symbol tge (AST.prog_main tprog) = Some b).
   { destruct TRANSL as (P & Q & R). rewrite Q. rewrite symbols_preserved. auto. }
-  assert (E: funsig tf = signature_of_type Tnil type_int32s cc_default).
+  assert (E: funsig tf = signature_of_type Tnil type_pint32s cc_default).
   { eapply transl_fundef_sig2; eauto. }
   econstructor; split.
   econstructor; eauto. apply (Genv.init_mem_match TRANSL). eauto.

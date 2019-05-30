@@ -346,7 +346,7 @@ let name_for_string_literal s =
 
 let typeStringLiteral s =
   let sg = if Machine.((!config).char_signed) then Signed else Unsigned in
-  Tarray(Tint(I8, sg, noattr), Z.of_uint (String.length s + 1), noattr)
+  Tarray(Tint(I8, sg, pnoattr), Z.of_uint (String.length s + 1), pnoattr)
 
 let global_for_string s id =
   let init = ref [] in
@@ -382,7 +382,7 @@ let typeWideStringLiteral s =
     | _ -> assert false in
   let sg =
     if Machine.((!config).wchar_signed) then Signed else Unsigned in
-  Tarray(Tint(sz, sg, noattr), Z.of_uint (List.length s + 1), noattr)
+  Tarray(Tint(sz, sg, pnoattr), Z.of_uint (List.length s + 1), pnoattr)
 
 let global_for_wide_string s id =
   let init = ref [] in
@@ -445,12 +445,12 @@ let make_builtin_memcpy args =
 let va_list_ptr e =
   if not CBuiltins.va_list_scalar then e else
     match e with
-    | Evalof(e', _) -> Eaddrof(e', Tpointer(typeof e, noattr))
+    | Evalof(e', _) -> Eaddrof(e', Tpointer(typeof e, pnoattr))
     | _             -> error "bad use of a va_list object"; e
 
 let make_builtin_va_arg_by_val helper ty ty_ret arg =
   let ty_fun =
-    Tfunction(Tcons(Tpointer(Tvoid, noattr), Tnil), ty_ret,  AST.cc_default) in
+    Tfunction(Tcons(Tpointer(Tvoid, pnoattr), Tnil), ty_ret,  AST.cc_default) in
   Ecast
     (Ecall(Evalof(Evar(intern_string helper, ty_fun), ty_fun),
            Econs(va_list_ptr arg, Enil),
@@ -459,39 +459,39 @@ let make_builtin_va_arg_by_val helper ty ty_ret arg =
 
 let make_builtin_va_arg_by_ref helper ty arg =
   let ty_fun =
-    Tfunction(Tcons(Tpointer(Tvoid, noattr), Tcons(Ctyping.size_t, Tnil)),
-              Tpointer(Tvoid, noattr),  AST.cc_default) in
+    Tfunction(Tcons(Tpointer(Tvoid, pnoattr), Tcons(Ctyping.size_t, Tnil)),
+              Tpointer(Tvoid, pnoattr),  AST.cc_default) in
   let ty_ptr =
-    Tpointer(ty, noattr) in
+    Tpointer(ty, pnoattr) in
   let call =
     Ecall(Evalof(Evar(intern_string helper, ty_fun), ty_fun),
           Econs(va_list_ptr arg, Econs(Esizeof(ty, Ctyping.size_t), Enil)),
-          Tpointer(Tvoid, noattr)) in
+          Tpointer(Tvoid, pnoattr)) in
   Evalof(Ederef(Ecast(call, ty_ptr), ty), ty)
 
 let make_builtin_va_arg env ty e =
   match ty with
   | Ctypes.Tint _ ->
       make_builtin_va_arg_by_val
-        "__compcert_va_int32" ty (Tint(I32, Unsigned, noattr)) e
+        "__compcert_va_int32" ty (Tint(I32, Unsigned, pnoattr)) e
   | Tpointer _ when Archi.ptr64 = false ->
       make_builtin_va_arg_by_val
-        "__compcert_va_int32" ty (Tint(I32, Unsigned, noattr)) e
+        "__compcert_va_int32" ty (Tint(I32, Unsigned, pnoattr)) e
   | Tpointer _ when Archi.ptr64 = true ->
       make_builtin_va_arg_by_val
-        "__compcert_va_int64" ty (Tlong(Unsigned, noattr)) e
+        "__compcert_va_int64" ty (Tlong(Unsigned, pnoattr)) e
   | Tlong _ ->
       make_builtin_va_arg_by_val
-        "__compcert_va_int64" ty (Tlong(Unsigned, noattr)) e
+        "__compcert_va_int64" ty (Tlong(Unsigned, pnoattr)) e
   | Tfloat _ ->
       make_builtin_va_arg_by_val
-        "__compcert_va_float64" ty (Tfloat(F64, noattr)) e
+        "__compcert_va_float64" ty (Tfloat(F64, pnoattr)) e
   | Tstruct _ | Tunion _ ->
       make_builtin_va_arg_by_ref
         "__compcert_va_composite" ty e
   | _ ->
       unsupported "va_arg at this type";
-      Eval(Vint(coqint_of_camlint 0l), type_int32s)
+      Eval(Vint(coqint_of_camlint 0l), type_pint32s)
 
 (** ** Translation functions *)
 
@@ -712,7 +712,7 @@ let convertFloat f kind =
 
 (** Expressions *)
 
-let ezero = Eval(Vint(coqint_of_camlint 0l), type_int32s)
+let ezero = Eval(Vint(coqint_of_camlint 0l), type_pint32s)
 
 let ewrap = function
   | Errors.OK e -> e
@@ -914,8 +914,8 @@ let rec convertExpr env e =
       let dst = convertExpr env arg1 in
       let src = convertExpr env arg2 in
       Ebuiltin( AST.EF_memcpy(Z.of_uint CBuiltins.size_va_list, Z.of_uint 4),
-               Tcons(Tpointer(Tvoid, noattr),
-                 Tcons(Tpointer(Tvoid, noattr), Tnil)),
+               Tcons(Tpointer(Tvoid, pnoattr),
+                 Tcons(Tpointer(Tvoid, pnoattr), Tnil)),
                Econs(va_list_ptr dst, Econs(va_list_ptr src, Enil)),
                Tvoid)
 

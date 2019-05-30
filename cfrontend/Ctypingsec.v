@@ -9,8 +9,7 @@ Local Open Scope error_monad_scope.
 
 (**
     Security typechecker
-    Assumes that normal typechecking has already passed, and thus that types already match, ignoring security annotations.
-    Typechecks security annotations (trusting only that variable/function declarations have the correct security type).
+    Assumes that typechecking has already passed, and thus that all intermediate expressions are corretly typed (with security annotations).
     Performs implicit classification.
     Introduces security builtin operations.
     Replaces security types for void pointers.
@@ -199,7 +198,7 @@ Fixpoint retype_secure_expr (ce: composite_env) (e: typenv) (a: expr) : res (exp
           end;*)
   | Eaddrof l t =>
       do (l',lt') <- retype_secure_expr ce e l;
-      OK (Eaddrof l' (Tpointer (typeof l) noattr),Tpointer lt' noattr)
+      OK (Eaddrof l' (Tpointer (typeof l) pnoattr),Tpointer lt' pnoattr)
 (*  | Eunop op r1 t =>
       do (r1',tr1') <- retype_secure_expr ce e r1;*)    
   | Ebinop op r1 r2 t =>
@@ -273,7 +272,7 @@ Definition initialize_secure_var (n: ident) (t t': type) : res statement :=
     | Tarray bt sz a => if a.(attr_secret)
         then if type_has_secret bt then Error (msg "unsupported secret array") else
         do blt <- match bt with
-        | Tint I8 Signed _ => OK (builtin_new_int8_array (Eval (Vlong (Int64.repr sz)) (Tlong Signed noattr)) t')
+        | Tint I8 Signed _ => OK (builtin_new_int8_array (Eval (Vlong (Int64.repr sz)) (Tlong Signed pnoattr)) t')
         | _ => Error (msg "unsupported secret array")
         end;
         OK (Sdo (Eassign (Evar n t') blt t'))

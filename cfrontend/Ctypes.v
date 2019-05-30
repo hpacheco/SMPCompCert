@@ -54,7 +54,7 @@ Record attr : Type := mk_attr {
   attr_secret: bool
 }.
 
-Definition noattr := {| attr_volatile := false; attr_alignas := None; attr_secret := false |}.
+Definition pnoattr := {| attr_volatile := false; attr_alignas := None; attr_secret := false |}.
 Definition snoattr (sec:bool) := {| attr_volatile := false; attr_alignas := None; attr_secret := sec |}.
 
 (** The syntax of type expressions.  Some points to note:
@@ -104,13 +104,13 @@ Opaque type_eq typelist_eq.
 
 Definition attr_of_type (ty: type) :=
   match ty with
-  | Tvoid => noattr
+  | Tvoid => pnoattr
   | Tint sz si a => a
   | Tlong si a => a
   | Tfloat sz a => a
   | Tpointer elt a => a
   | Tarray elt sz a => a
-  | Tfunction args res cc => noattr
+  | Tfunction args res cc => pnoattr
   | Tstruct id a => a
   | Tunion id a => a
   end.
@@ -133,7 +133,7 @@ Definition change_attributes (f: attr -> attr) (ty: type) : type :=
 (** Erase the top-level attributes of a type *)
 
 Definition remove_attributes (ty: type) : type :=
-  change_attributes (fun a => noattr) ty.
+  change_attributes (fun a => snoattr a.(attr_secret)) ty.
 
 (** Add extra attributes to the top-level attributes of a type *)
 
@@ -199,8 +199,10 @@ Definition composite_env : Type := PTree.t composite.
 
 (** ** Conversions *)
 
-Definition type_int32s := Tint I32 Signed (noattr).
-Definition type_bool   := Tint IBool Signed (noattr).
+Definition type_pint32s := Tint I32 Signed (pnoattr).
+Definition type_sint32s (sec:bool) := Tint I32 Signed (snoattr sec).
+Definition type_pbool   := Tint IBool Signed (pnoattr).
+Definition type_sbool (sec:bool)  := Tint IBool Signed (snoattr sec).
 
 (** The usual unary conversion.  Promotes small integer types to [signed int32]
   and degrades array types and function types to pointer types.
@@ -210,7 +212,7 @@ Definition typeconv (ty: type) : type :=
   match ty with
   | Tint (I8 | I16 | IBool) _ a => Tint I32 Signed (snoattr a.(attr_secret))
   | Tarray t sz a       => Tpointer t (snoattr a.(attr_secret))
-  | Tfunction _ _ _     => Tpointer ty (noattr)
+  | Tfunction _ _ _     => Tpointer ty (pnoattr)
   | _                   => remove_attributes ty
   end.
 
@@ -222,7 +224,7 @@ Definition default_argument_conversion (ty: type) : type :=
   | Tint (I8 | I16 | IBool) _ a => Tint I32 Signed (snoattr a.(attr_secret))
   | Tfloat _ a          => Tfloat F64 (snoattr a.(attr_secret))
   | Tarray t sz a       => Tpointer t (snoattr a.(attr_secret))
-  | Tfunction _ _ _     => Tpointer ty (noattr)
+  | Tfunction _ _ _     => Tpointer ty (pnoattr)
   | _                   => remove_attributes ty
   end.
 

@@ -140,8 +140,8 @@ Definition Eaddrof' (a: expr) (t: type) : expr :=
 
 Definition transl_incrdecr (id: incr_or_decr) (a: expr) (ty: type) : expr :=
   match id with
-  | Incr => Ebinop Oadd a (Econst_int Int.one type_int32s) (incrdecr_type ty)
-  | Decr => Ebinop Osub a (Econst_int Int.one type_int32s) (incrdecr_type ty)
+  | Incr => Ebinop Oadd a (Econst_int Int.one type_pint32s) (incrdecr_type ty)
+  | Decr => Ebinop Osub a (Econst_int Int.one type_pint32s) (incrdecr_type ty)
   end.
 
 (** Generate a [Sset] or [Sbuiltin] operation as appropriate
@@ -156,7 +156,7 @@ Definition make_set (id: ident) (l: expr) : statement :=
   match chunk_for_volatile_type (typeof l) with
   | None => Sset id l
   | Some chunk =>
-      let typtr := Tpointer (typeof l) noattr in
+      let typtr := Tpointer (typeof l) pnoattr in
       Sbuiltin (Some id) (EF_vload chunk) (Tcons typtr Tnil) ((Eaddrof l typtr):: nil)
   end.
 
@@ -176,7 +176,7 @@ Definition make_assign (l r: expr) : statement :=
       Sassign l r
   | Some chunk =>
       let ty := typeof l in
-      let typtr := Tpointer ty noattr in
+      let typtr := Tpointer ty pnoattr in
       Sbuiltin None (EF_vstore chunk) (Tcons typtr (Tcons ty Tnil))
                     (Eaddrof l typtr :: r :: nil)
   end.
@@ -205,7 +205,7 @@ Inductive destination : Type :=
   | For_effects
   | For_set (sd: set_destination).
 
-Definition dummy_expr := Econst_int Int.zero type_int32s.
+Definition dummy_expr := Econst_int Int.zero type_pint32s.
 
 Fixpoint do_set (sd: set_destination) (a: expr) : list statement :=
   match sd with
@@ -223,9 +223,9 @@ Definition finish (dst: destination) (sl: list statement) (a: expr) :=
 Definition sd_temp (sd: set_destination) :=
   match sd with SDbase _ _ tmp => tmp | SDcons _ _ tmp _ => tmp end.
 Definition sd_seqbool_val (tmp: ident) (ty: type) :=
-  SDbase type_bool ty tmp.
+  SDbase (type_sbool (type_is_secret ty)) ty tmp.
 Definition sd_seqbool_set (ty: type) (sd: set_destination) :=
-  let tmp :=  sd_temp sd in SDcons type_bool ty tmp sd.
+  let tmp :=  sd_temp sd in SDcons (type_sbool (type_is_secret ty)) ty tmp sd.
 
 Fixpoint transl_expr (dst: destination) (a: Csyntax.expr) : mon (list statement * expr) :=
   match a with
@@ -431,7 +431,7 @@ Definition transl_if (r: Csyntax.expr) (s1 s2: statement) : mon statement :=
 
 (** Translation of statements *)
 
-Definition expr_true := Econst_int Int.one type_int32s.
+Definition expr_true := Econst_int Int.one type_pint32s.
 
 Definition is_Sskip:
   forall s, {s = Csyntax.Sskip} + {s <> Csyntax.Sskip}.

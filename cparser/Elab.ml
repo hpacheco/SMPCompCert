@@ -1896,13 +1896,13 @@ let elab_expr ctx loc env a =
 
 (* 6.5.3 Unary expressions *)
 
-  | EXPR_SIZEOF a1 ->
-      let b1,env = elab env a1 in
+  | EXPR_SIZEOF a1 -> fatal_error "elab typechecker for sizeof expressions is potentially insecure"
+      (*let b1,env = elab env a1 in
       if wrap incomplete_type loc env b1.etyp then
         fatal_error "invalid application of 'sizeof' to an incomplete type %a" (print_typ env) b1.etyp;
       if wrap is_bitfield loc env b1 then
         fatal_error "invalid application of 'sizeof' to a bit-field";
-      { edesc = ESizeof b1.etyp; etyp = TInt(size_t_ikind(), []) },env
+      { edesc = ESizeof b1.etyp; etyp = TInt(size_t_ikind(), []) },env*)
 
   | TYPE_SIZEOF (spec, dcl) ->
       let (ty, env') = elab_type loc env spec dcl in

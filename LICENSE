@@ -36,6 +36,7 @@ option) any later version:
   cfrontend/Csyntax.v
   cfrontend/Ctypes.v
   cfrontend/Ctyping.v
+  cfrontend/Ctypingsec.v
   cfrontend/PrintClight.ml
   cfrontend/PrintCsyntax.ml
   

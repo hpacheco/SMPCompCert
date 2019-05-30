@@ -51,10 +51,11 @@ Inductive floatsize : Type :=
 Record attr : Type := mk_attr {
   attr_volatile: bool;
   attr_alignas: option N;         (**r log2 of required alignment *)
-  attr_secret:bool
+  attr_secret: bool
 }.
 
 Definition noattr := {| attr_volatile := false; attr_alignas := None; attr_secret := false |}.
+Definition snoattr (sec:bool) := {| attr_volatile := false; attr_alignas := None; attr_secret := sec |}.
 
 (** The syntax of type expressions.  Some points to note:
 - Array types [Tarray n] carry the size [n] of the array.
@@ -132,7 +133,7 @@ Definition change_attributes (f: attr -> attr) (ty: type) : type :=
 (** Erase the top-level attributes of a type *)
 
 Definition remove_attributes (ty: type) : type :=
-  change_attributes (fun _ => noattr) ty.
+  change_attributes (fun a => noattr) ty.
 
 (** Add extra attributes to the top-level attributes of a type *)
 
@@ -198,8 +199,8 @@ Definition composite_env : Type := PTree.t composite.
 
 (** ** Conversions *)
 
-Definition type_int32s := Tint I32 Signed noattr.
-Definition type_bool := Tint IBool Signed noattr.
+Definition type_int32s := Tint I32 Signed (noattr).
+Definition type_bool   := Tint IBool Signed (noattr).
 
 (** The usual unary conversion.  Promotes small integer types to [signed int32]
   and degrades array types and function types to pointer types.
@@ -207,9 +208,9 @@ Definition type_bool := Tint IBool Signed noattr.
 
 Definition typeconv (ty: type) : type :=
   match ty with
-  | Tint (I8 | I16 | IBool) _ _ => Tint I32 Signed noattr
-  | Tarray t sz a       => Tpointer t noattr
-  | Tfunction _ _ _     => Tpointer ty noattr
+  | Tint (I8 | I16 | IBool) _ a => Tint I32 Signed (snoattr a.(attr_secret))
+  | Tarray t sz a       => Tpointer t (snoattr a.(attr_secret))
+  | Tfunction _ _ _     => Tpointer ty (noattr)
   | _                   => remove_attributes ty
   end.
 
@@ -218,10 +219,10 @@ Definition typeconv (ty: type) : type :=
 
 Definition default_argument_conversion (ty: type) : type :=
   match ty with
-  | Tint (I8 | I16 | IBool) _ _ => Tint I32 Signed noattr
-  | Tfloat _ _          => Tfloat F64 noattr
-  | Tarray t sz a       => Tpointer t noattr
-  | Tfunction _ _ _     => Tpointer ty noattr
+  | Tint (I8 | I16 | IBool) _ a => Tint I32 Signed (snoattr a.(attr_secret))
+  | Tfloat _ a          => Tfloat F64 (snoattr a.(attr_secret))
+  | Tarray t sz a       => Tpointer t (snoattr a.(attr_secret))
+  | Tfunction _ _ _     => Tpointer ty (noattr)
   | _                   => remove_attributes ty
   end.
 
@@ -599,6 +600,9 @@ Definition type_is_volatile (ty: type) : bool :=
   | By_value _ => attr_volatile (attr_of_type ty)
   | _          => false
   end.
+
+Definition type_is_secret (ty: type) : bool :=
+  attr_secret (attr_of_type ty).
 
 (** ** Alignment for block copy operations *)
 

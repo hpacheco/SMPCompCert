@@ -17,7 +17,7 @@ Require Import String.
 Require Import Coqlib Errors.
 Require Import AST Linking Smallstep.
 (** Languages (syntax and semantics). *)
-Require Ctypes Csyntax Csem Cstrategy Cexec.
+Require Ctypes Ctypingsec Csyntax Csem Cstrategy Cexec.
 Require Clight.
 Require Csharpminor.
 Require Cminor.

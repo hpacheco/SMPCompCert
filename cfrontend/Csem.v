@@ -255,7 +255,7 @@ Inductive rred: expr -> mem -> trace -> expr -> mem -> Prop :=
   | red_seqand_true: forall v1 ty1 r2 ty m,
       bool_val v1 ty1 m = Some true ->
       rred (Eseqand (Eval v1 ty1) r2 ty) m
-        E0 (Eparen r2 type_bool ty) m
+        E0 (Eparen r2 (type_bool) ty) m
   | red_seqand_false: forall v1 ty1 r2 ty m,
       bool_val v1 ty1 m = Some false ->
       rred (Eseqand (Eval v1 ty1) r2 ty) m
@@ -267,7 +267,7 @@ Inductive rred: expr -> mem -> trace -> expr -> mem -> Prop :=
   | red_seqor_false: forall v1 ty1 r2 ty m,
       bool_val v1 ty1 m = Some false ->
       rred (Eseqor (Eval v1 ty1) r2 ty) m
-        E0 (Eparen r2 type_bool ty) m
+        E0 (Eparen r2 (type_bool) ty) m
   | red_condition: forall v1 ty1 r1 r2 ty b m,
       bool_val v1 ty1 m = Some b ->
       rred (Econdition (Eval v1 ty1) r1 r2 ty) m
@@ -294,7 +294,7 @@ Inductive rred: expr -> mem -> trace -> expr -> mem -> Prop :=
       rred (Epostincr id (Eloc b ofs ty) ty) m
          t (Ecomma (Eassign (Eloc b ofs ty)
                             (Ebinop op (Eval v1 ty)
-                                       (Eval (Vint Int.one) type_int32s)
+                                       (Eval (Vint Int.one) (type_int32s))
                                        (incrdecr_type ty))
                            ty)
                    (Eval v1 ty) ty) m
@@ -774,7 +774,7 @@ Inductive initial_state (p: program): state -> Prop :=
       Genv.init_mem p = Some m0 ->
       Genv.find_symbol ge p.(prog_main) = Some b ->
       Genv.find_funct_ptr ge b = Some f ->
-      type_of_fundef f = Tfunction Tnil type_int32s cc_default ->
+      type_of_fundef f = Tfunction Tnil (type_int32s) cc_default ->
       initial_state p (Callstate f nil Kstop m0).
 
 (** A final state is a [Returnstate] with an empty continuation. *)

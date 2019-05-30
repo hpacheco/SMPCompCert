@@ -252,7 +252,7 @@ Inductive estep: state -> trace -> state -> Prop :=
       eval_simple_rvalue e m r1 v ->
       bool_val v (typeof r1) m = Some true ->
       estep (ExprState f (C (Eseqand r1 r2 ty)) k e m)
-         E0 (ExprState f (C (Eparen r2 type_bool ty)) k e m)
+         E0 (ExprState f (C (Eparen r2 (type_bool) ty)) k e m)
   | step_seqand_false: forall f C r1 r2 ty k e m v,
       leftcontext RV RV C ->
       eval_simple_rvalue e m r1 v ->
@@ -271,7 +271,7 @@ Inductive estep: state -> trace -> state -> Prop :=
       eval_simple_rvalue e m r1 v ->
       bool_val v (typeof r1) m = Some false ->
       estep (ExprState f (C (Eseqor r1 r2 ty)) k e m)
-         E0 (ExprState f (C (Eparen r2 type_bool ty)) k e m)
+         E0 (ExprState f (C (Eparen r2 (type_bool) ty)) k e m)
 
   | step_condition: forall f C r1 r2 r3 ty k e m v b,
       leftcontext RV RV C ->
@@ -1696,7 +1696,7 @@ with eval_expr: env -> mem -> kind -> expr -> trace -> mem -> expr -> Prop :=
       eval_expr e m RV a1 t1 m' a1' -> eval_simple_rvalue ge e m' a1' v1 ->
       bool_val v1 (typeof a1) m' = Some true ->
       eval_expr e m' RV a2 t2 m'' a2' -> eval_simple_rvalue ge e m'' a2' v2 ->
-      sem_cast v2 (typeof a2) type_bool m'' = Some v ->
+      sem_cast v2 (typeof a2) (type_bool) m'' = Some v ->
       eval_expr e m RV (Eseqand a1 a2 ty) (t1**t2) m'' (Eval v ty)
   | eval_seqand_false: forall e m a1 a2 ty t1 m' a1' v1,
       eval_expr e m RV a1 t1 m' a1' -> eval_simple_rvalue ge e m' a1' v1 ->
@@ -1706,7 +1706,7 @@ with eval_expr: env -> mem -> kind -> expr -> trace -> mem -> expr -> Prop :=
       eval_expr e m RV a1 t1 m' a1' -> eval_simple_rvalue ge e m' a1' v1 ->
       bool_val v1 (typeof a1) m' = Some false ->
       eval_expr e m' RV a2 t2 m'' a2' -> eval_simple_rvalue ge e m'' a2' v2 ->
-      sem_cast v2 (typeof a2) type_bool m'' = Some v ->
+      sem_cast v2 (typeof a2) (type_bool) m'' = Some v ->
       eval_expr e m RV (Eseqor a1 a2 ty) (t1**t2) m'' (Eval v ty)
   | eval_seqor_true: forall e m a1 a2 ty t1 m' a1' v1,
       eval_expr e m RV a1 t1 m' a1' -> eval_simple_rvalue ge e m' a1' v1 ->
@@ -2259,7 +2259,7 @@ Proof.
 (* seqand true *)
   exploit (H0 (fun x => C(Eseqand x a2 ty))).
     eapply leftcontext_compose; eauto. repeat constructor. intros [A [B D]].
-  exploit (H4 (fun x => C(Eparen x type_bool ty))).
+  exploit (H4 (fun x => C(Eparen x (type_bool) ty))).
     eapply leftcontext_compose; eauto. repeat constructor. intros [E [F G]].
   simpl; intuition. eapply star_trans. eexact D.
   eapply star_left. left; eapply step_seqand_true; eauto. rewrite B; auto.
@@ -2275,7 +2275,7 @@ Proof.
 (* seqor false *)
   exploit (H0 (fun x => C(Eseqor x a2 ty))).
     eapply leftcontext_compose; eauto. repeat constructor. intros [A [B D]].
-  exploit (H4 (fun x => C(Eparen x type_bool ty))).
+  exploit (H4 (fun x => C(Eparen x (type_bool) ty))).
     eapply leftcontext_compose; eauto. repeat constructor. intros [E [F G]].
   simpl; intuition. eapply star_trans. eexact D.
   eapply star_left. left; eapply step_seqor_false; eauto. rewrite B; auto.
@@ -2799,7 +2799,7 @@ Proof.
   eapply forever_N_plus. eapply plus_right. eexact R.
   left; eapply step_seqand_true; eauto. rewrite Q; eauto.
   reflexivity.
-  eapply COE with (C := fun x => (C (Eparen x type_bool ty))). eauto.
+  eapply COE with (C := fun x => (C (Eparen x (type_bool) ty))). eauto.
   eapply leftcontext_compose; eauto. repeat constructor. traceEq.
 (* seqor left *)
   eapply forever_N_star with (a2 := (esize a1)). apply star_refl. simpl; omega.
@@ -2812,7 +2812,7 @@ Proof.
   eapply forever_N_plus. eapply plus_right. eexact R.
   left; eapply step_seqor_false; eauto. rewrite Q; eauto.
   reflexivity.
-  eapply COE with (C := fun x => (C (Eparen x type_bool ty))). eauto.
+  eapply COE with (C := fun x => (C (Eparen x (type_bool) ty))). eauto.
   eapply leftcontext_compose; eauto. repeat constructor. traceEq.
 (* condition top *)
   eapply forever_N_star with (a2 := (esize a1)). apply star_refl. simpl; omega.

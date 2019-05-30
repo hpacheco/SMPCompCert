@@ -388,11 +388,11 @@ Inductive classify_bool_cases : Type :=
 
 Definition classify_bool (ty: type) : classify_bool_cases :=
   match typeconv ty with
-  | Tint _ _ _ => bool_case_i
-  | Tpointer _ _ => if Archi.ptr64 then bool_case_l else bool_case_i
-  | Tfloat F64 _ => bool_case_f
-  | Tfloat F32 _ => bool_case_s
-  | Tlong _ _ => bool_case_l
+  | Tint _ _ a => bool_case_i 
+  | Tpointer _ a => if Archi.ptr64 then bool_case_l else bool_case_i
+  | Tfloat F64 a => bool_case_f 
+  | Tfloat F32 a => bool_case_s 
+  | Tlong _ a => bool_case_l 
   | _ => bool_default
   end.
 
@@ -442,19 +442,19 @@ Definition sem_notbool (v: val) (ty: type) (m: mem): option val :=
 (** *** Opposite and absolute value *)
 
 Inductive classify_neg_cases : Type :=
-  | neg_case_i(s: signedness)              (**r int *)
+  | neg_case_i (s: signedness)             (**r int *)
   | neg_case_f                             (**r double float *)
   | neg_case_s                             (**r single float *)
-  | neg_case_l(s: signedness)              (**r long *)
+  | neg_case_l (s: signedness)             (**r long *)
   | neg_default.
 
 Definition classify_neg (ty: type) : classify_neg_cases :=
   match ty with
-  | Tint I32 Unsigned _ => neg_case_i Unsigned
-  | Tint _ _ _ => neg_case_i Signed
-  | Tfloat F64 _ => neg_case_f
-  | Tfloat F32 _ => neg_case_s
-  | Tlong si _ => neg_case_l si
+  | Tint I32 Unsigned a => neg_case_i Unsigned 
+  | Tint _ _ a => neg_case_i Signed 
+  | Tfloat F64 a => neg_case_f 
+  | Tfloat F32 a => neg_case_s 
+  | Tlong si a => neg_case_l si 
   | _ => neg_default
   end.
 
@@ -517,9 +517,9 @@ Inductive classify_notint_cases : Type :=
 
 Definition classify_notint (ty: type) : classify_notint_cases :=
   match ty with
-  | Tint I32 Unsigned _ => notint_case_i Unsigned
-  | Tint _ _ _ => notint_case_i Signed
-  | Tlong si _ => notint_case_l si
+  | Tint I32 Unsigned a => notint_case_i Unsigned 
+  | Tint _ _ a => notint_case_i Signed 
+  | Tlong si a => notint_case_l si 
   | _ => notint_default
   end.
 
@@ -556,19 +556,19 @@ Inductive binarith_cases: Type :=
 
 Definition classify_binarith (ty1: type) (ty2: type) : binarith_cases :=
   match ty1, ty2 with
-  | Tint I32 Unsigned _, Tint _ _ _ => bin_case_i Unsigned
-  | Tint _ _ _, Tint I32 Unsigned _ => bin_case_i Unsigned
-  | Tint _ _ _, Tint _ _ _ => bin_case_i Signed
-  | Tlong Signed _, Tlong Signed _ => bin_case_l Signed
-  | Tlong _ _, Tlong _ _ => bin_case_l Unsigned
-  | Tlong sg _, Tint _ _ _ => bin_case_l sg
-  | Tint _ _ _, Tlong sg _ => bin_case_l sg
-  | Tfloat F32 _, Tfloat F32 _ => bin_case_s
-  | Tfloat _ _, Tfloat _ _ => bin_case_f
-  | Tfloat F64 _, (Tint _ _ _ | Tlong _ _) => bin_case_f
-  | (Tint _ _ _ | Tlong _ _), Tfloat F64 _ => bin_case_f
-  | Tfloat F32 _, (Tint _ _ _ | Tlong _ _) => bin_case_s
-  | (Tint _ _ _ | Tlong _ _), Tfloat F32 _ => bin_case_s
+  | Tint I32 Unsigned a1, Tint _ _ a2 => bin_case_i Unsigned 
+  | Tint _ _ a1, Tint I32 Unsigned a2 => bin_case_i Unsigned 
+  | Tint _ _ a1, Tint _ _ a2 => bin_case_i Signed 
+  | Tlong Signed a1, Tlong Signed a2 => bin_case_l Signed 
+  | Tlong _ a1, Tlong _ a2 => bin_case_l Unsigned 
+  | Tlong sg a1, Tint _ _ a2 => bin_case_l sg 
+  | Tint _ _ a1, Tlong sg a2 => bin_case_l sg 
+  | Tfloat F32 a1, Tfloat F32 a2 => bin_case_s 
+  | Tfloat _ a1, Tfloat _ a2 => bin_case_f 
+  | Tfloat F64 a1, (Tint _ _ a2 | Tlong _ a2) => bin_case_f 
+  | (Tint _ _ a1 | Tlong _ a1), Tfloat F64 a2 => bin_case_f 
+  | Tfloat F32 a1, (Tint _ _ a2 | Tlong _ a2) => bin_case_s 
+  | (Tint _ _ a1 | Tlong _ a1), Tfloat F32 a2 => bin_case_s 
   | _, _ => bin_default
   end.
 
@@ -577,10 +577,10 @@ Definition classify_binarith (ty1: type) (ty2: type) : binarith_cases :=
 
 Definition binarith_type (c: binarith_cases) : type :=
   match c with
-  | bin_case_i sg => Tint I32 sg noattr
-  | bin_case_l sg => Tlong sg noattr
-  | bin_case_f    => Tfloat F64 noattr
-  | bin_case_s    => Tfloat F32 noattr
+  | bin_case_i sg => Tint I32 sg (noattr)
+  | bin_case_l sg => Tlong sg (noattr)
+  | bin_case_f   => Tfloat F64 (noattr)
+  | bin_case_s   => Tfloat F32 (noattr)
   | bin_default   => Tvoid
   end.
 
@@ -625,18 +625,18 @@ Definition sem_binarith
 (** *** Addition *)
 
 Inductive classify_add_cases : Type :=
-  | add_case_pi (ty: type) (si: signedness)     (**r pointer, int *)
-  | add_case_pl (ty: type)     (**r pointer, long *)
-  | add_case_ip (si: signedness) (ty: type)     (**r int, pointer *)
-  | add_case_lp (ty: type)     (**r long, pointer *)
-  | add_default.               (**r numerical type, numerical type *)
+  | add_case_pi (ty: type) (si: signedness)      (**r pointer, int *)
+  | add_case_pl (ty: type)                       (**r pointer, long *)
+  | add_case_ip (si: signedness) (ty: type)      (**r int, pointer *)
+  | add_case_lp (ty: type)                       (**r long, pointer *)
+  | add_default.                                 (**r numerical type, numerical type *)
 
 Definition classify_add (ty1: type) (ty2: type) :=
   match typeconv ty1, typeconv ty2 with
-  | Tpointer ty _, Tint _ si _ => add_case_pi ty si
-  | Tpointer ty _, Tlong _ _ => add_case_pl ty
-  | Tint _ si _, Tpointer ty _ => add_case_ip si ty
-  | Tlong _ _, Tpointer ty _ => add_case_lp ty
+  | Tpointer ty a1, Tint _ si a2 => add_case_pi ty si 
+  | Tpointer ty a1, Tlong _ a2 => add_case_pl ty      
+  | Tint _ si a1, Tpointer ty a2 => add_case_ip si ty 
+  | Tlong _ a1, Tpointer ty a2 => add_case_lp ty      
   | _, _ => add_default
   end.
 
@@ -694,16 +694,16 @@ Definition sem_add (cenv: composite_env) (v1:val) (t1:type) (v2: val) (t2:type) 
 (** *** Subtraction *)
 
 Inductive classify_sub_cases : Type :=
-  | sub_case_pi (ty: type) (si: signedness)  (**r pointer, int *)
-  | sub_case_pp (ty: type)               (**r pointer, pointer *)
-  | sub_case_pl (ty: type)               (**r pointer, long *)
-  | sub_default.                         (**r numerical type, numerical type *)
+  | sub_case_pi (ty: type) (si: signedness) (**r pointer, int *)
+  | sub_case_pp (ty: type)                  (**r pointer, pointer *)
+  | sub_case_pl (ty: type)                  (**r pointer, long *)
+  | sub_default.                            (**r numerical type, numerical type *)
 
 Definition classify_sub (ty1: type) (ty2: type) :=
   match typeconv ty1, typeconv ty2 with
-  | Tpointer ty _, Tint _ si _ => sub_case_pi ty si
-  | Tpointer ty _ , Tpointer _ _ => sub_case_pp ty
-  | Tpointer ty _, Tlong _ _ => sub_case_pl ty
+  | Tpointer ty a1, Tint _ si a2 => sub_case_pi ty si
+  | Tpointer ty a1 , Tpointer _ a2 => sub_case_pp ty
+  | Tpointer ty a1, Tlong _ a2 => sub_case_pl ty
   | _, _ => sub_default
   end.
 
@@ -854,12 +854,12 @@ Inductive classify_shift_cases : Type:=
 
 Definition classify_shift (ty1: type) (ty2: type) :=
   match typeconv ty1, typeconv ty2 with
-  | Tint I32 Unsigned _, Tint _ _ _ => shift_case_ii Unsigned
-  | Tint _ _ _, Tint _ _ _ => shift_case_ii Signed
-  | Tint I32 Unsigned _, Tlong _ _ => shift_case_il Unsigned
-  | Tint _ _ _, Tlong _ _ => shift_case_il Signed
-  | Tlong s _, Tint _ _ _ => shift_case_li s
-  | Tlong s _, Tlong _ _ => shift_case_ll s
+  | Tint I32 Unsigned a1, Tint _ _ a2 => shift_case_ii Unsigned
+  | Tint _ _ a1, Tint _ _ a2 => shift_case_ii Signed
+  | Tint I32 Unsigned a1, Tlong _ a2 => shift_case_il Unsigned
+  | Tint _ _ a1, Tlong _ a2 => shift_case_il Signed 
+  | Tlong s a1, Tint _ _ a2 => shift_case_li s 
+  | Tlong s a1, Tlong _ a2 => shift_case_ll s 
   | _,_  => shift_default
   end.
 
@@ -914,21 +914,21 @@ Definition sem_shr (v1:val) (t1:type) (v2: val) (t2:type) : option val :=
 (** *** Comparisons *)
 
 Inductive classify_cmp_cases : Type :=
-  | cmp_case_pp                       (**r pointer, pointer *)
-  | cmp_case_pi (si: signedness)      (**r pointer, int *)
-  | cmp_case_ip (si: signedness)      (**r int, pointer *)
-  | cmp_case_pl                       (**r pointer, long *)
-  | cmp_case_lp                       (**r long, pointer *)
-  | cmp_default.                      (**r numerical, numerical *)
+  | cmp_case_pp                        (**r pointer, pointer *)
+  | cmp_case_pi (si: signedness)       (**r pointer, int *)
+  | cmp_case_ip (si: signedness)       (**r int, pointer *)
+  | cmp_case_pl                        (**r pointer, long *)
+  | cmp_case_lp                        (**r long, pointer *)
+  | cmp_default.                       (**r numerical, numerical *)
 
 Definition classify_cmp (ty1: type) (ty2: type) :=
   match typeconv ty1, typeconv ty2 with
-  | Tpointer _ _ , Tpointer _ _ => cmp_case_pp
-  | Tpointer _ _ , Tint _ si _ => cmp_case_pi si
-  | Tint _ si _, Tpointer _ _ => cmp_case_ip si
-  | Tpointer _ _ , Tlong _ _ => cmp_case_pl
-  | Tlong _ _ , Tpointer _ _ => cmp_case_lp
-  | _, _ => cmp_default
+  | Tpointer _ a1 , Tpointer _ a2 => cmp_case_pp   
+  | Tpointer _ a1 , Tint _ si a2 => cmp_case_pi si 
+  | Tint _ si a1, Tpointer _ a2 => cmp_case_ip si  
+  | Tpointer _ a1 , Tlong _ a2 => cmp_case_pl      
+  | Tlong _ a1 , Tpointer _ a2 => cmp_case_lp      
+  | _, _ => cmp_default                           
   end.
 
 Definition cmp_ptr (m: mem) (c: comparison) (v1 v2: val): option val :=
@@ -1070,16 +1070,16 @@ Definition sem_binary_operation
 
 Definition sem_incrdecr (cenv: composite_env) (id: incr_or_decr) (v: val) (ty: type) (m: mem) :=
   match id with
-  | Incr => sem_add cenv v ty (Vint Int.one) type_int32s m
-  | Decr => sem_sub cenv v ty (Vint Int.one) type_int32s m
+  | Incr => sem_add cenv v ty (Vint Int.one) (type_int32s) m
+  | Decr => sem_sub cenv v ty (Vint Int.one) (type_int32s) m
   end.
 
 Definition incrdecr_type (ty: type) :=
   match typeconv ty with
   | Tpointer ty a => Tpointer ty a
-  | Tint sz sg a => Tint sz sg noattr
-  | Tlong sg a => Tlong sg noattr
-  | Tfloat sz a => Tfloat sz noattr
+  | Tint sz sg a => Tint sz sg (noattr)
+  | Tlong sg a => Tlong sg (noattr)
+  | Tfloat sz a => Tfloat sz (noattr)
   | _ => Tvoid
   end.
 
@@ -1422,16 +1422,17 @@ Qed.
 
 Lemma cast_bool_bool_val:
   forall v t m,
-  sem_cast v t (Tint IBool Signed noattr) m =
+  sem_cast v t (Tint IBool Signed noattr ) m =
   match bool_val v t m with None => None | Some b => Some(Val.of_bool b) end.
   intros.
   assert (A: classify_bool t =
+    let a := attr_of_type t in
     match t with
-    | Tint _ _ _ => bool_case_i
+    | Tint _ _ a => bool_case_i
     | Tpointer _ _ | Tarray _ _ _ | Tfunction _ _ _ => if Archi.ptr64 then bool_case_l else bool_case_i
-    | Tfloat F64 _ => bool_case_f
-    | Tfloat F32 _ => bool_case_s
-    | Tlong _ _ => bool_case_l
+    | Tfloat F64 a => bool_case_f
+    | Tfloat F32 a => bool_case_s
+    | Tlong _ a => bool_case_l 
     | _ => bool_default
     end).
   {
@@ -1715,21 +1716,21 @@ Definition usual_arithmetic_conversion (t1 t2: arith_type) : arith_type :=
 
 Definition proj_type (t: arith_type) : type :=
   match t with
-  | I _Bool => Tint IBool Unsigned noattr
-  | I Char => Tint I8 Unsigned noattr
-  | I SChar => Tint I8 Signed noattr
-  | I UChar => Tint I8 Unsigned noattr
-  | I Short => Tint I16 Signed noattr
-  | I UShort => Tint I16 Unsigned noattr
-  | I Int => Tint I32 Signed noattr
-  | I UInt => Tint I32 Unsigned noattr
-  | I Long => Tint I32 Signed noattr
-  | I ULong => Tint I32 Unsigned noattr
-  | I Longlong => Tlong Signed noattr
-  | I ULonglong => Tlong Unsigned noattr
-  | Float => Tfloat F32 noattr
-  | Double => Tfloat F64 noattr
-  | Longdouble => Tfloat F64 noattr
+  | I _Bool => Tint IBool Unsigned (noattr)
+  | I Char => Tint I8 Unsigned (noattr)
+  | I SChar => Tint I8 Signed (noattr)
+  | I UChar => Tint I8 Unsigned (noattr)
+  | I Short => Tint I16 Signed (noattr)
+  | I UShort => Tint I16 Unsigned (noattr)
+  | I Int => Tint I32 Signed (noattr)
+  | I UInt => Tint I32 Unsigned (noattr)
+  | I Long => Tint I32 Signed (noattr)
+  | I ULong => Tint I32 Unsigned (noattr)
+  | I Longlong => Tlong Signed (noattr)
+  | I ULonglong => Tlong Unsigned (noattr)
+  | Float => Tfloat F32 (noattr)
+  | Double => Tfloat F64 (noattr)
+  | Longdouble => Tfloat F64 (noattr)
   end.
 
 (** Relation between [typeconv] and integer promotion. *)

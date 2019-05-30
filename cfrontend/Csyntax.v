@@ -98,7 +98,7 @@ Definition Eindex (r1 r2: expr) (ty: type) :=
 
 Definition Epreincr (id: incr_or_decr) (l: expr) (ty: type) :=
   Eassignop (match id with Incr => Oadd | Decr => Osub end)
-            l (Eval (Vint Int.one) type_int32s) (typeconv ty) ty.
+            l (Eval (Vint Int.one) (type_int32s)) (typeconv ty) ty.
 
 (** Extract the type part of a type-annotated expression. *)
 

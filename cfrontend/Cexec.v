@@ -763,7 +763,7 @@ Fixpoint step_expr (k: kind) (a: expr) (m: mem): reducts expr :=
       match is_val r1 with
       | Some(v1, ty1) =>
           do b <- bool_val v1 ty1 m;
-          if b then topred (Rred "red_seqand_true" (Eparen r2 (type_sbool (type_is_secret ty)) ty) m E0)
+          if b then topred (Rred "red_seqand_true" (Eparen r2 (type_bool (type_is_secret ty)) ty) m E0)
                else topred (Rred "red_seqand_false" (Eval (Vint Int.zero) ty) m E0)
       | None =>
           incontext (fun x => Eseqand x r2 ty) (step_expr RV r1 m)
@@ -773,7 +773,7 @@ Fixpoint step_expr (k: kind) (a: expr) (m: mem): reducts expr :=
       | Some(v1, ty1) =>
           do b <- bool_val v1 ty1 m;
           if b then topred (Rred "red_seqor_true" (Eval (Vint Int.one) ty) m E0)
-               else topred (Rred "red_seqor_false" (Eparen r2 (type_sbool (type_is_secret ty)) ty) m E0)
+               else topred (Rred "red_seqor_false" (Eparen r2 (type_bool (type_is_secret ty)) ty) m E0)
       | None =>
           incontext (fun x => Eseqor x r2 ty) (step_expr RV r1 m)
       end

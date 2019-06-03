@@ -255,7 +255,7 @@ Inductive rred: expr -> mem -> trace -> expr -> mem -> Prop :=
   | red_seqand_true: forall v1 ty1 r2 ty m,
       bool_val v1 ty1 m = Some true ->
       rred (Eseqand (Eval v1 ty1) r2 ty) m
-        E0 (Eparen r2 (type_sbool (type_is_secret ty)) ty) m
+        E0 (Eparen r2 (type_bool (type_is_secret ty)) ty) m
   | red_seqand_false: forall v1 ty1 r2 ty m,
       bool_val v1 ty1 m = Some false ->
       rred (Eseqand (Eval v1 ty1) r2 ty) m
@@ -267,7 +267,7 @@ Inductive rred: expr -> mem -> trace -> expr -> mem -> Prop :=
   | red_seqor_false: forall v1 ty1 r2 ty m,
       bool_val v1 ty1 m = Some false ->
       rred (Eseqor (Eval v1 ty1) r2 ty) m
-        E0 (Eparen r2 (type_sbool (type_is_secret ty)) ty) m
+        E0 (Eparen r2 (type_bool (type_is_secret ty)) ty) m
   | red_condition: forall v1 ty1 r1 r2 ty b m,
       bool_val v1 ty1 m = Some b ->
       rred (Econdition (Eval v1 ty1) r1 r2 ty) m

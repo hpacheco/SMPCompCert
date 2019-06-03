@@ -32,6 +32,14 @@ Inductive unary_operation : Type :=
   | Oneg : unary_operation              (**r opposite (unary [-]) *)
   | Oabsfloat : unary_operation.        (**r floating-point absolute value *)
 
+Definition show_unop (u: unary_operation) : string :=
+  match u with
+  | Onotbool => "!"
+  | Onotint => "~"
+  | Oneg => "-"
+  | Oabsfloat => "abs"
+  end.
+
 Inductive binary_operation : Type :=
   | Oadd : binary_operation             (**r addition (binary [+]) *)
   | Osub : binary_operation             (**r subtraction (binary [-]) *)
@@ -49,6 +57,26 @@ Inductive binary_operation : Type :=
   | Ogt: binary_operation               (**r comparison ([>]) *)
   | Ole: binary_operation               (**r comparison ([<=]) *)
   | Oge: binary_operation.              (**r comparison ([>=]) *)
+
+Definition show_binop (b: binary_operation) : string :=
+  match b with
+  | Oadd => "+"
+  | Osub => "-"
+  | Omul => "*"
+  | Odiv => "/"
+  | Omod => "%"
+  | Oand => "&"
+  | Oor => "|"
+  | Oxor => "^"
+  | Oshl => "<<"
+  | Oshr => ">>"
+  | Oeq => "=="
+  | One => "!="
+  | Olt => "<"
+  | Ogt => ">"
+  | Ole => "<="
+  | Oge => ">="
+  end.
 
 Inductive incr_or_decr : Type := Incr | Decr.
 
@@ -577,10 +605,10 @@ Definition classify_binarith (ty1: type) (ty2: type) : binarith_cases :=
 
 Definition binarith_type (ty1 ty2: type) (c: binarith_cases) : type :=
   match c with
-  | bin_case_i sg => Tint I32 sg (snoattr (type_is_secret ty1 || type_is_secret ty2))
-  | bin_case_l sg => Tlong sg (snoattr (type_is_secret ty1 || type_is_secret ty2))
-  | bin_case_f   => Tfloat F64 (snoattr (type_is_secret ty1 || type_is_secret ty2))
-  | bin_case_s   => Tfloat F32 (snoattr (type_is_secret ty1 || type_is_secret ty2))
+  | bin_case_i sg => Tint I32 sg (noattr (type_is_secret ty1 || type_is_secret ty2))
+  | bin_case_l sg => Tlong sg (noattr (type_is_secret ty1 || type_is_secret ty2))
+  | bin_case_f   => Tfloat F64 (noattr (type_is_secret ty1 || type_is_secret ty2))
+  | bin_case_s   => Tfloat F32 (noattr (type_is_secret ty1 || type_is_secret ty2))
   | bin_default   => Tvoid
   end.
 
@@ -1077,9 +1105,9 @@ Definition sem_incrdecr (cenv: composite_env) (id: incr_or_decr) (v: val) (ty: t
 Definition incrdecr_type (ty: type) :=
   match typeconv ty with
   | Tpointer ty a => Tpointer ty a
-  | Tint sz sg a => Tint sz sg (snoattr (type_is_secret ty))
-  | Tlong sg a => Tlong sg (snoattr (type_is_secret ty))
-  | Tfloat sz a => Tfloat sz (snoattr (type_is_secret ty))
+  | Tint sz sg a => Tint sz sg (noattr (type_is_secret ty))
+  | Tlong sg a => Tlong sg (noattr (type_is_secret ty))
+  | Tfloat sz a => Tfloat sz (noattr (type_is_secret ty))
   | _ => Tvoid
   end.
 
@@ -1422,7 +1450,7 @@ Qed.
 
 Lemma cast_bool_bool_val:
   forall v t m sec,
-  sem_cast v t (Tint IBool Signed (snoattr sec)) m =
+  sem_cast v t (Tint IBool Signed (noattr sec)) m =
   match bool_val v t m with None => None | Some b => Some(Val.of_bool b) end.
   intros.
   assert (A: classify_bool t =

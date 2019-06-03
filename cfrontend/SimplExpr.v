@@ -223,9 +223,9 @@ Definition finish (dst: destination) (sl: list statement) (a: expr) :=
 Definition sd_temp (sd: set_destination) :=
   match sd with SDbase _ _ tmp => tmp | SDcons _ _ tmp _ => tmp end.
 Definition sd_seqbool_val (tmp: ident) (ty: type) :=
-  SDbase (type_sbool (type_is_secret ty)) ty tmp.
+  SDbase (type_bool (type_is_secret ty)) ty tmp.
 Definition sd_seqbool_set (ty: type) (sd: set_destination) :=
-  let tmp :=  sd_temp sd in SDcons (type_sbool (type_is_secret ty)) ty tmp sd.
+  let tmp :=  sd_temp sd in SDcons (type_bool (type_is_secret ty)) ty tmp sd.
 
 Fixpoint transl_expr (dst: destination) (a: Csyntax.expr) : mon (list statement * expr) :=
   match a with

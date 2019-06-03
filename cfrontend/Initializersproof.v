@@ -117,7 +117,7 @@ with eval_simple_rvalue: expr -> val -> Prop :=
   | esr_seqand_true: forall r1 r2 ty v1 v2 v3,
       eval_simple_rvalue r1 v1 -> bool_val v1 (typeof r1) m = Some true ->
       eval_simple_rvalue r2 v2 ->
-      sem_cast v2 (typeof r2) (type_sbool (type_is_secret (typeof r2))) m = Some v3 ->
+      sem_cast v2 (typeof r2) (type_bool (type_is_secret (typeof r2))) m = Some v3 ->
       eval_simple_rvalue (Eseqand r1 r2 ty) v3
   | esr_seqand_false: forall r1 r2 ty v1,
       eval_simple_rvalue r1 v1 -> bool_val v1 (typeof r1) m = Some false ->
@@ -125,7 +125,7 @@ with eval_simple_rvalue: expr -> val -> Prop :=
   | esr_seqor_false: forall r1 r2 ty v1 v2 v3,
       eval_simple_rvalue r1 v1 -> bool_val v1 (typeof r1) m = Some false ->
       eval_simple_rvalue r2 v2 ->
-      sem_cast v2 (typeof r2) (type_sbool (type_is_secret (typeof r2))) m = Some v3 ->
+      sem_cast v2 (typeof r2) (type_bool (type_is_secret (typeof r2))) m = Some v3 ->
       eval_simple_rvalue (Eseqor r1 r2 ty) v3
   | esr_seqor_true: forall r1 r2 ty v1,
       eval_simple_rvalue r1 v1 -> bool_val v1 (typeof r1) m = Some true ->

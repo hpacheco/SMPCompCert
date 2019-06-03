@@ -56,9 +56,8 @@ let compile_c_file sourcename ifile ofile =
   let csyntax = parse_c_file sourcename ifile in
   (* hpacheco: Typecheck *)
   let csyntax1 =
-    match (Ctyping.typecheck_program csyntax) with
-    | Errors.OK csyntax1 ->
-        csyntax1
+    match (Ctypingsec.typecheck_secure_program csyntax) with
+    | Errors.OK csyntax1 -> csyntax1
     | Errors.Error msg ->
       let loc = file_loc sourcename in
         fatal_error loc "%a"  print_error msg in

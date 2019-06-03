@@ -91,7 +91,7 @@ as [*(r1 + r2)].
 *)
 
 (*Definition Eindex (r1 r2: expr) (ty: type) :=
-  Ederef (Ebinop Oadd r1 r2 (Tpointer ty snoattr)) ty.*)
+  Ederef (Ebinop Oadd r1 r2 (Tpointer ty noattr)) ty.*)
 
 (** Pre-increment [++l] and pre-decrement [--l] are expressed as
     [l += 1] and [l -= 1], respectively. *)
@@ -179,6 +179,9 @@ Record function : Type := mkfunction {
   fn_vars: list (ident * type);
   fn_body: statement
 }.
+
+Definition prepend_function_body (s: statement) (f: function) : function :=
+ mkfunction (f.(fn_return)) (f.(fn_callconv)) (f.(fn_params)) (f.(fn_vars)) (Ssequence s f.(fn_body)).
 
 Definition var_names (vars: list(ident * type)) : list ident :=
   List.map (@fst ident type) vars.

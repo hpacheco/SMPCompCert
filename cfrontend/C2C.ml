@@ -41,6 +41,14 @@ type atom_info =
     a_loc: location                    (* source location *)
 }
 
+let globdefs = Hashtbl.create 103
+
+let get_external a =
+    try match (Hashtbl.find globdefs a) with
+    | AST.Gfun (Ctypes.External (ef,_,_,_)) -> Some ef
+    | _ -> None
+    with Not_found -> None
+
 let decl_atom : (AST.ident, atom_info) Hashtbl.t = Hashtbl.create 103
 
 let atom_is_static a =
@@ -930,17 +938,23 @@ let rec convertExpr env e =
                targs, convertExprList env args, tres)
 
   | C.ECall(fn, args) ->
-      begin match projFunType env fn.etyp with
-      | None ->
-          error "wrong type for function part of a call"
-      | Some(tres, targs, va) ->
-          checkFunctionType env tres targs;
-          if targs = None && not !Clflags.option_funprototyped then
-            unsupported "call to unprototyped function (consider adding option [-funprototyped])";
-          if va && not !Clflags.option_fvararg_calls then
-            unsupported "call to variable-argument function (consider adding option [-fvararg-calls])"
-      end;
-      ewrap (Ctyping.ecall (convertExpr env fn) (convertExprList env args))
+      match fn.edesc with
+      | C.EVar id ->
+          begin match projFunType env fn.etyp with
+          | None ->
+              error "wrong type for function part of a call"
+          | Some(tres, targs, va) ->
+              checkFunctionType env tres targs;
+              if targs = None && not !Clflags.option_funprototyped then
+                unsupported "call to unprototyped function (consider adding option [-funprototyped])";
+              if va && not !Clflags.option_fvararg_calls then
+                unsupported "call to variable-argument function (consider adding option [-fvararg-calls])"
+          end;
+          begin match get_external (intern_string id.name) with
+          | Some ef -> ewrap (Ctyping.eexternal ef (convertExpr env fn) (convertExprList env args))
+          | None -> ewrap (Ctyping.ecall (convertExpr env fn) (convertExprList env args))
+          end
+      | _ -> error "call has no name"; ezero
 
 and convertLvalue env e =
   match e.edesc with
@@ -1189,12 +1203,14 @@ let convertFundef loc env fd =
       a_access = Sections.Access_default;
       a_inline = inline;
       a_loc = loc };
-  (id',  AST.Gfun(Ctypes.Internal
+  let res = AST.Gfun(Ctypes.Internal
           {fn_return = ret;
            fn_callconv = convertCallconv fd.fd_vararg false fd.fd_attrib;
            fn_params = params;
            fn_vars = vars;
-           fn_body = body'}))
+           fn_body = body'}) in
+  Hashtbl.add globdefs id' res;
+  (id',res)
 
 (** External function declaration *)
 
@@ -1217,7 +1233,9 @@ let convertFundecl env (sto, id, ty, optinit) =
     && List.mem_assoc id.name builtins.Builtins.functions
     then AST.EF_builtin(id'', sg)
     else AST.EF_external(id'', sg) in
-  (id',  AST.Gfun(Ctypes.External(ef, args, res, cconv)))
+  let res = AST.Gfun(Ctypes.External(ef, args, res, cconv)) in
+  Hashtbl.add globdefs id' res;
+  (id',res)
 
 (** Initializers *)
 
@@ -1277,8 +1295,10 @@ let convertGlobvar loc env (sto, id, ty, optinit) =
       a_loc = loc };
   let volatile = List.mem C.AVolatile attr in
   let readonly = List.mem C.AConst attr && not volatile in
-  (id',  AST.Gvar { AST.gvar_info = ty'; gvar_init = init';
-              gvar_readonly = readonly; gvar_volatile = volatile})
+  let res = AST.Gvar { AST.gvar_info = ty'; gvar_init = init';
+              gvar_readonly = readonly; gvar_volatile = volatile} in
+  Hashtbl.add globdefs id' res;
+  (id',res)
 
 (** Convert a list of global declarations.
   Result is a list of CompCert C global declarations (functions +
@@ -1410,6 +1430,7 @@ let public_globals gl =
 let convertProgram p =
   Diagnostics.reset();
   stringNum := 0;
+  Hashtbl.clear globdefs;
   Hashtbl.clear decl_atom;
   Hashtbl.clear stringTable;
   Hashtbl.clear wstringTable;

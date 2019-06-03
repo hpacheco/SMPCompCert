@@ -116,6 +116,7 @@ Extract Constant Compopts.debug =>
   "fun _ -> !Clflags.option_g".
 
 (* Compiler *)
+Extract Constant Compiler.print_Csyntax => "PrintCsyntax.print_if".
 Extract Constant Compiler.print_Clight => "PrintClight.print_if".
 Extract Constant Compiler.print_Cminor => "PrintCminor.print_if".
 Extract Constant Compiler.print_RTL => "PrintRTL.print_if".
@@ -173,6 +174,8 @@ Separate Extraction
    Initializers.transl_init Initializers.constval
    Csyntax.Epreincr
    Ctyping.typecheck_program
+   Ctyping.eexternal
+   Ctypingsec.typecheck_secure_program
    Ctyping.epostincr Ctyping.epostdecr Ctyping.epreincr Ctyping.epredecr
    Ctypes.make_program
    Clight.type_of_function

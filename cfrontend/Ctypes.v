@@ -55,7 +55,8 @@ Record attr : Type := mk_attr {
 }.
 
 Definition pnoattr := {| attr_volatile := false; attr_alignas := None; attr_secret := false |}.
-Definition snoattr (sec:bool) := {| attr_volatile := false; attr_alignas := None; attr_secret := sec |}.
+Definition snoattr := {| attr_volatile := false; attr_alignas := None; attr_secret := true |}.
+Definition noattr (sec:bool) := {| attr_volatile := false; attr_alignas := None; attr_secret := sec |}.
 
 (** The syntax of type expressions.  Some points to note:
 - Array types [Tarray n] carry the size [n] of the array.
@@ -79,6 +80,19 @@ Inductive type : Type :=
 with typelist : Type :=
   | Tnil: typelist
   | Tcons: type -> typelist -> typelist.
+
+Definition type_signedness (t: type) : signedness :=
+  match t with
+  | Tvoid => Unsigned
+  | Tint _ sg _ => sg
+  | Tlong sg _ => sg
+  | Tfloat _ _ => Signed
+  | Tpointer _ _ => Unsigned
+  | Tarray _ _ _ => Unsigned
+  | Tfunction _ _ _ => Unsigned
+  | Tstruct _ _ => Unsigned
+  | Tunion _ _ => Unsigned
+  end.
 
 Lemma intsize_eq: forall (s1 s2: intsize), {s1=s2} + {s1<>s2}.
 Proof.
@@ -133,7 +147,7 @@ Definition change_attributes (f: attr -> attr) (ty: type) : type :=
 (** Erase the top-level attributes of a type *)
 
 Definition remove_attributes (ty: type) : type :=
-  change_attributes (fun a => snoattr a.(attr_secret)) ty.
+  change_attributes (fun a => noattr a.(attr_secret)) ty.
 
 (** Add extra attributes to the top-level attributes of a type *)
 
@@ -199,10 +213,21 @@ Definition composite_env : Type := PTree.t composite.
 
 (** ** Conversions *)
 
+Definition type_pint8s := Tint I8 Signed (pnoattr).
+Definition type_sint8s := Tint I8 Signed (snoattr).
+
+Definition type_pint16s := Tint I16 Signed (pnoattr).
+
 Definition type_pint32s := Tint I32 Signed (pnoattr).
-Definition type_sint32s (sec:bool) := Tint I32 Signed (snoattr sec).
+Definition type_sint32s := Tint I32 Signed (snoattr).
+Definition type_int32s (sec:bool) := Tint I32 Signed (noattr sec).
+
+Definition type_pint64u := Tlong Unsigned pnoattr.
+Definition type_pint64s := Tlong Signed pnoattr.
+
 Definition type_pbool   := Tint IBool Signed (pnoattr).
-Definition type_sbool (sec:bool)  := Tint IBool Signed (snoattr sec).
+Definition type_sbool   := Tint IBool Signed (snoattr).
+Definition type_bool (sec:bool)  := Tint IBool Signed (noattr sec).
 
 (** The usual unary conversion.  Promotes small integer types to [signed int32]
   and degrades array types and function types to pointer types.
@@ -210,8 +235,8 @@ Definition type_sbool (sec:bool)  := Tint IBool Signed (snoattr sec).
 
 Definition typeconv (ty: type) : type :=
   match ty with
-  | Tint (I8 | I16 | IBool) _ a => Tint I32 Signed (snoattr a.(attr_secret))
-  | Tarray t sz a       => Tpointer t (snoattr a.(attr_secret))
+  | Tint (I8 | I16 | IBool) _ a => Tint I32 Signed (noattr a.(attr_secret))
+  | Tarray t sz a       => Tpointer t (noattr a.(attr_secret))
   | Tfunction _ _ _     => Tpointer ty (pnoattr)
   | _                   => remove_attributes ty
   end.
@@ -221,9 +246,9 @@ Definition typeconv (ty: type) : type :=
 
 Definition default_argument_conversion (ty: type) : type :=
   match ty with
-  | Tint (I8 | I16 | IBool) _ a => Tint I32 Signed (snoattr a.(attr_secret))
-  | Tfloat _ a          => Tfloat F64 (snoattr a.(attr_secret))
-  | Tarray t sz a       => Tpointer t (snoattr a.(attr_secret))
+  | Tint (I8 | I16 | IBool) _ a => Tint I32 Signed (noattr a.(attr_secret))
+  | Tfloat _ a          => Tfloat F64 (noattr a.(attr_secret))
+  | Tarray t sz a       => Tpointer t (noattr a.(attr_secret))
   | Tfunction _ _ _     => Tpointer ty (pnoattr)
   | _                   => remove_attributes ty
   end.

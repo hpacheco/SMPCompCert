@@ -74,6 +74,7 @@ Require Asmgenproof.
 Require Import Compopts.
 
 (** Pretty-printers (defined in Caml). *)
+Parameter print_Csyntax: Csyntax.program -> unit.
 Parameter print_Clight: Clight.program -> unit.
 Parameter print_Cminor: Cminor.program -> unit.
 Parameter print_RTL: Z -> RTL.program -> unit.

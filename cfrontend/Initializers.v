@@ -86,7 +86,7 @@ Fixpoint constval (ce: composite_env) (a: expr) : res val :=
       do v1 <- constval ce r1;
       do v2 <- constval ce r2;
       match bool_val v1 (typeof r1) Mem.empty with
-      | Some true => do_cast v2 (typeof r2) (type_sbool (type_is_secret (typeof r2)))
+      | Some true => do_cast v2 (typeof r2) (type_bool (type_is_secret (typeof r2)))
       | Some false => OK (Vint Int.zero)
       | None => Error(msg "undefined && operation")
       end
@@ -94,7 +94,7 @@ Fixpoint constval (ce: composite_env) (a: expr) : res val :=
       do v1 <- constval ce r1;
       do v2 <- constval ce r2;
       match bool_val v1 (typeof r1) Mem.empty with
-      | Some false => do_cast v2 (typeof r2) (type_sbool (type_is_secret (typeof r2)))
+      | Some false => do_cast v2 (typeof r2) (type_bool (type_is_secret (typeof r2)))
       | Some true => OK (Vint Int.one)
       | None => Error(msg "undefined || operation")
       end

@@ -45,6 +45,7 @@ let compile_c_file sourcename ifile ofile =
       else None in
   set_dest Cprint.destination option_dparse ".parsed.c";
   set_dest PrintCsyntax.destination option_dcmedium ".compcert.c";
+  set_dest PrintCsyntax.destination_sec option_dcmedium ".sec.c";
   set_dest PrintClight.destination option_dclight ".light.c";
   set_dest PrintCminor.destination option_dcminor ".cm";
   set_dest PrintRTL.destination option_drtl ".rtl";
@@ -61,6 +62,7 @@ let compile_c_file sourcename ifile ofile =
     | Errors.Error msg ->
       let loc = file_loc sourcename in
         fatal_error loc "%a"  print_error msg in
+  PrintCsyntax.print_if_sec csyntax1;
   (* Convert to Asm *)
   let asm =
     match Compiler.apply_partial

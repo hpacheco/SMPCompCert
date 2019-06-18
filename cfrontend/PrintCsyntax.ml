@@ -561,3 +561,13 @@ let print_if prog =
       let oc = open_out f in
       print_program (formatter_of_out_channel oc) prog;
       close_out oc
+
+let destination_sec : string option ref = ref None
+
+let print_if_sec prog =
+  match !destination_sec with
+  | None -> ()
+  | Some f ->
+      let oc = open_out f in
+      print_program (formatter_of_out_channel oc) prog;
+      close_out oc

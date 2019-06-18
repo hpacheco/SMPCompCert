@@ -9,7 +9,7 @@ Local Open Scope error_monad_scope.
 
 (**
     Security typechecker
-    Assumes that typechecking has already passed, and thus that all intermediate expressions are corretly typed (with security annotations).
+    Assumes that typechecking has already passed, and thus that all intermediate expressions are correctly typed (with security annotations).
     Performs implicit classification.
     Introduces security builtin operations.
     Replaces security types for void pointers.
@@ -310,8 +310,19 @@ Fixpoint retype_secure_expr (ce: composite_env) (e: typenv) (a: expr) : res (exp
       do lr <- secure_binop (Ebinop op) (secure_binop_expr op) tres l' r';
       do lr' <- secure_cast t lr;
       OK (Eassign l' lr' t)
-  | Epostincr _ _ _ => Error (msg "undefined expression postincr")
-  | Ecomma _ _ _ => Error (msg "undefined expression comma")
+  | Epostincr id r t =>
+      do r' <- retype_secure_expr ce e r;
+      let one := Eval (Vint Int.one) (type_pint32s) in
+      do radd1' <- secure_binop (Ebinop Oadd) (secure_binop_expr Oadd) t r' one;
+      do rsub1' <- secure_binop (Ebinop Osub) (secure_binop_expr Osub) t r' one;
+      match id with
+      | Incr => OK (Ecomma (Eassign r' radd1' t) rsub1' t)
+      | Decr => OK (Ecomma (Eassign r' rsub1' t) radd1' t)
+      end
+  | Ecomma r1 r2 t =>
+      do r1' <- retype_secure_expr ce e r1;
+      do r2' <- retype_secure_expr ce e r2;
+      OK (Ecomma r1' r2' t)
   | Ecall rname rargs t =>
       do rname' <- retype_secure_expr ce e rname; 
       do rargs' <- retype_secure_exprlist ce e rargs;
@@ -476,8 +487,8 @@ Definition retype_secure_program (p: program) : res program :=
 
 (** Remove security qualifiers **)
 
-(*Fixpoint remsec_type (t : type) : res type := 
-  let tptr := Tpointer Tvoid (attr_of_type t) in
+Fixpoint remsec_type (t : type) : res type := 
+  let tptr := Tpointer Tvoid (make_public_attr (attr_of_type t)) in
   match t with
   | Tvoid => OK Tvoid
   | Tint _ _ a => if a.(attr_secret) then OK tptr else OK t
@@ -498,28 +509,215 @@ with remsec_types (ts : typelist) : res typelist :=
   | Tcons x xs => do x' <- remsec_type x; do xs' <- remsec_types xs; OK (Tcons x' xs')
   end.
 
-Definition remsec_typ (t: typ) 
 
-Definition remsec_signature (s: signature) : res signature :=
-  do typs' <- remsec_typs s.(sig_args);
-  do res' <- remsec_opt_typ s.(sig_res);
-  mksignature types' res' s.(sig_cc).
+Definition remsec_typ_of_type (t: type) : res AST.typ :=
+  match t with
+  | Tvoid => OK AST.Tint
+  | Tint _ _ a => if a.(attr_secret) then OK AST.Tptr else OK AST.Tint
+  | Tlong _ a => if a.(attr_secret) then OK AST.Tptr else OK AST.Tlong
+  | Tfloat F32 a => if a.(attr_secret) then OK AST.Tptr else OK AST.Tsingle
+  | Tfloat F64 a => if a.(attr_secret) then OK AST.Tptr else OK AST.Tfloat
+  | Tpointer _ _ | Tarray _ _ _ | Tfunction _ _ _ | Tstruct _ _ | Tunion _ _ => OK AST.Tptr
+  end.
+  
+Definition remsec_opttyp_of_type (t: type) : res (option AST.typ) :=
+  if type_eq t Tvoid then OK None else do optty' <- remsec_typ_of_type t; OK (Some optty').
 
-Definition remsec_external_function (ef: external_function) : res external_function :=
+Fixpoint remsec_typlist_of_typelist (tl: typelist) : res (list AST.typ) :=
+  match tl with
+  | Tnil => OK nil
+  | Tcons hd tl => do hd' <- remsec_typ_of_type hd; do tl' <- remsec_typlist_of_typelist tl; OK (hd' :: tl')
+  end.
+
+Definition remsec_signature (s: signature) (targs : typelist) (tres: type) : res signature := 
+  do typs' <- remsec_typlist_of_typelist targs;
+  do res' <- remsec_opttyp_of_type tres;
+  OK (mksignature typs' res' s.(sig_cc)).
+
+Definition remsec_external_function (ef: external_function) (targs : typelist) (tres : type) : res external_function :=
   match ef with
-  | EF_external n sg => do sg' <- remsec_signature sg; OK (EF_external n sg)
+  | EF_external n sg => do sg' <- remsec_signature sg targs tres; OK (EF_external n sg')
   | ef => OK ef
   end.
 
-Definition remsec_function (f: function) : res function := OK f.
+Fixpoint remsec_expr (a: expr) : res (expr) :=
+  match a with
+  | Eval v t =>
+      do t' <- remsec_type t;
+      OK (Eval v t')
+  | Evar x t =>
+      do t' <- remsec_type t;
+      OK (Evar x t')
+  | Efield r f t =>
+      do t' <- remsec_type t;
+      do r' <- remsec_expr r;
+      OK (Efield r' f t')
+  | Evalof r t =>
+      do t' <- remsec_type t;
+      do r' <- remsec_expr r;
+      OK (Evalof r' t')
+  | Ederef r t =>
+      do t' <- remsec_type t;
+      do r' <- remsec_expr r;
+      OK (Ederef r' t')
+  | Eaddrof l t =>
+      do t' <- remsec_type t;
+      do l' <- remsec_expr l;
+      OK (Eaddrof l' t')
+  | Eunop op r1 t =>
+      do t' <- remsec_type t;
+      do r1' <- remsec_expr r1;
+      OK (Eunop op r1' t')
+  | Ebinop op r1 r2 t =>
+      do t' <- remsec_type t;
+      do r1' <- remsec_expr r1;
+      do r2' <- remsec_expr r2;
+      OK (Ebinop op r1' r2' t')
+  | Ecast r t =>
+      do t' <- remsec_type t;
+      do r' <- remsec_expr r;
+      OK (Ecast r' t')
+  | Eseqand r1 r2 t =>
+      do t' <- remsec_type t;
+      do r1' <- remsec_expr r1;
+      do r2' <- remsec_expr r2;
+      OK (Eseqand r1' r2' t')
+  | Eseqor r1 r2 t =>
+      do t' <- remsec_type t;
+      do r1' <- remsec_expr r1;
+      do r2' <- remsec_expr r2;
+      OK (Eseqor r1' r2' t')
+  | Econdition r1 r2 r3 t =>
+      do t' <- remsec_type t;
+      do r1' <- remsec_expr r1;
+      do r2' <- remsec_expr r2;
+      do r3' <- remsec_expr r3;
+      OK (Econdition r1' r2' r3' t')
+  | Esizeof r t =>
+      do t' <- remsec_type t;
+      do r' <- remsec_type r;
+      OK (Esizeof r' t')
+  | Ealignof r t =>
+      do t' <- remsec_type t;
+      do r' <- remsec_type r;
+      OK (Ealignof r' t')
+  | Eassign l r t =>
+      do t' <- remsec_type t;
+      do l' <- remsec_expr l;
+      do r' <- remsec_expr r;
+      OK (Eassign l' r' t')
+  | Eassignop op l r tres t => 
+      do tres' <- remsec_type tres;
+      do t' <- remsec_type t;
+      do l' <- remsec_expr l;
+      do r' <- remsec_expr r;
+      OK (Eassignop op l' r' tres' t')
+  | Epostincr id l t =>
+      do t' <- remsec_type t;
+      do l' <- remsec_expr l;
+      OK (Epostincr id l' t')
+  | Ecomma r1 r2 t =>
+      do t' <- remsec_type t;
+      do r1' <- remsec_expr r1;
+      do r2' <- remsec_expr r2;
+      OK (Ecomma r1' r2' t')
+  | Ecall rname rargs t =>
+      do t' <- remsec_type t;
+      do rname' <- remsec_expr rname; 
+      do rargs' <- remsec_exprlist rargs;
+      OK (Ecall rname' rargs' t')
+  | Ebuiltin ef tyargs rargs t =>
+      do ef' <- remsec_external_function ef tyargs t;
+      do tyargs' <- remsec_types tyargs;
+      do rargs' <- remsec_exprlist rargs;
+      do t' <- remsec_type t;
+      OK (Ebuiltin ef' tyargs' rargs' t')
+  | Eloc b of t =>
+      do t' <- remsec_type t;
+      OK (Eloc b of t')
+  | Eparen r ty t =>
+      do t' <- remsec_type t;
+      do ty' <- remsec_type ty;
+      do r' <- remsec_expr r;
+      OK (Eparen r' ty' t')
+  end
+with remsec_exprlist (rs: exprlist) : res (exprlist) :=
+  match rs with
+  | Enil => OK Enil
+  | Econs x xs => do x' <- remsec_expr x; do xs' <- remsec_exprlist xs; OK (Econs x' xs')
+  end.
+
+Fixpoint remsec_stmt (s: statement) : res statement :=
+  match s with
+  | Sskip => OK Sskip
+  | Sdo a => do a' <- remsec_expr a; OK (Sdo a')
+  | Ssequence s1 s2 =>
+      do s1' <- remsec_stmt s1;
+      do s2' <- remsec_stmt s2;
+      OK (Ssequence s1' s2')
+  | Sifthenelse a s1 s2 =>
+      do a' <- remsec_expr a;
+      do s1' <- remsec_stmt s1; do s2' <- remsec_stmt s2;
+      OK (Sifthenelse a' s1' s2')
+  | Swhile a s =>
+      do a' <- remsec_expr a;
+      do s' <- remsec_stmt s;
+      OK (Swhile a' s')
+  | Sdowhile a s =>
+      do a' <- remsec_expr a;
+      do s' <- remsec_stmt s;
+      OK (Sdowhile a' s')
+  | Sfor s1 a s2 s3 =>
+      do a' <- remsec_expr a;
+      do s1' <- remsec_stmt s1;
+      do s2' <- remsec_stmt s2;
+      do s3' <- remsec_stmt s3;
+      OK (Sfor s1' a' s2' s3')
+  | Sbreak => OK Sbreak
+  | Scontinue => OK Scontinue
+  | Sreturn None => OK (Sreturn None)
+  | Sreturn (Some a) =>
+      do a' <- remsec_expr a;
+      OK (Sreturn (Some a'))
+  | Sswitch a sl =>
+      do a' <- remsec_expr a;
+      do sl' <- remsec_lblstmts sl;
+      OK (Sswitch a' sl')
+  | Slabel lbl s => do s' <- remsec_stmt s; OK (Slabel lbl s')
+  | Sgoto lbl => OK (Sgoto lbl)
+  end
+with remsec_lblstmts (sl: labeled_statements) : res labeled_statements :=
+  match sl with
+  | LSnil => OK LSnil
+  | LScons c s sl =>
+      do s' <- remsec_stmt s; do sl' <- remsec_lblstmts sl;
+      OK (LScons c s' sl')
+  end.
+
+Definition remsec_fn_var (var : ident * type) : res (ident * type) :=
+    do ty' <- remsec_type (snd var);
+    OK (fst var,ty').
+
+Fixpoint remsec_fn_vars (vars : list (ident * type)) : res (list (ident * type)) :=
+  match vars with
+  | nil => OK nil
+  | cons x xs => do x' <- remsec_fn_var x; do xs' <- remsec_fn_vars xs; OK (cons x' xs')
+  end.
+
+Definition remsec_function (f: function) : res function :=
+    do ret' <- remsec_type f.(fn_return);
+    do params' <- remsec_fn_vars f.(fn_params);
+    do vars' <- remsec_fn_vars f.(fn_vars);
+    do body' <- remsec_stmt f.(fn_body);
+    OK (mkfunction ret' f.(fn_callconv) params' vars' body').
 
 Definition remsec_fundef (n: ident) (fd: fundef) : res fundef :=
   match fd with
   | Internal f => do f' <- remsec_function f; OK (Internal f')
   | External ef targs tres cconv => 
-      do ef' <- remsec_external_function ef;
       do targs' <- remsec_types targs;
       do tres' <- remsec_type tres;
+      do ef' <- remsec_external_function ef targs' tres';
       OK (External ef' targs' tres' cconv)
   end.
     
@@ -550,16 +748,14 @@ Fixpoint remsec_composite_definitions (xs : list composite_definition) : res (li
     | x :: xs => do x' <- remsec_composite_definition x; do xs' <- remsec_composite_definitions xs; OK (x'::xs')
     end.
 
-(*TODO: are composite environments needed by the further translations? *)
 Definition remsec_program (p: program) : res program :=
     do tp <- transform_partial_program2 remsec_fundef remsec_globdef p;
     do types' <- remsec_composite_definitions p.(prog_types);
-    make_program types' tp.(AST.prog_defs) p.(prog_public) p.(prog_main).*)
+    make_program types' tp.(AST.prog_defs) p.(prog_public) p.(prog_main).
 
 (** Typechecker **)
 
 Definition typecheck_secure_program (p: program) : res program :=
     do p1 <- typecheck_program p;
     do p2 <- retype_secure_program p1;
-    (*remsec_program p2.*)
-    OK p2.
+    remsec_program p2.

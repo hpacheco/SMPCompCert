@@ -49,36 +49,55 @@ let compile_c_file sourcename ifile ofile =
   set_dest PrintClight.destination option_dclight ".light.c";
   set_dest PrintCminor.destination option_dcminor ".cm";
   set_dest PrintRTL.destination option_drtl ".rtl";
+  set_dest PrintSharemind.destination option_dsharemind ".sa";
   set_dest Regalloc.destination_alloctrace option_dalloctrace ".alloctrace";
   set_dest PrintLTL.destination option_dltl ".ltl";
   set_dest PrintMach.destination option_dmach ".mach";
-  set_dest AsmToJSON.destination option_sdump !sdump_suffix;
+  (*set_dest AsmToJSON.destination option_sdump !sdump_suffix;*)
   (* Parse the ast *)
   let csyntax = parse_c_file sourcename ifile in
-  (* hpacheco: Typecheck *)
-  let csyntax1 =
-    match (Ctypingsec.typecheck_secure_program csyntax) with
-    | Errors.OK csyntax1 -> csyntax1
-    | Errors.Error msg ->
-      let loc = file_loc sourcename in
-        fatal_error loc "%a"  print_error msg in
-  PrintCsyntax.print_if_sec csyntax1;
-  (* Convert to Asm *)
-  let asm =
-    match Compiler.apply_partial
-               (Compiler.transf_c_program csyntax1)
-               Asmexpand.expand_program with
-    | Errors.OK asm ->
-        asm
-    | Errors.Error msg ->
-      let loc = file_loc sourcename in
-        fatal_error loc "%a"  print_error msg in
-  (* Dump Asm in binary and JSON format *)
-  AsmToJSON.print_if asm sourcename;
-  (* Print Asm in text form *)
-  let oc = open_out ofile in
-  PrintAsm.print_program oc asm;
-  close_out oc
+  if !option_dsharemind
+      then
+        (* hpacheco: Typecheck *)
+        let csyntax1 =
+          match (Ctypingsec.typecheck_secure_program csyntax) with
+          | Errors.OK csyntax1 -> csyntax1
+          | Errors.Error msg ->
+            let loc = file_loc sourcename in
+              fatal_error loc "%a"  print_error msg in
+        PrintCsyntax.print_if_sec csyntax1;
+        (* Convert to sharemind VM *)
+        let sa0 =
+            match Compiler.transf_c_program_to_sharemind csyntax1 with
+            | Errors.OK sa0 -> sa0
+            | Errors.Error msg -> let loc = file_loc sourcename in fatal_error loc "%a"  print_error msg
+            in
+        PrintSharemind.print_if (0) PrintSharemind.print_ast_ext sa0;
+        let sa =
+          match Sharemindext.transl_ext_program sa0 with
+          | Errors.OK sa ->
+              sa
+          | Errors.Error msg ->
+            let loc = file_loc sourcename in fatal_error loc "%a"  print_error msg
+          in
+        PrintSharemind.print_if (1) PrintSharemind.print_shm_ext sa
+      else
+        (* Convert to Asm *)
+        let asm =
+          match Compiler.apply_partial
+                     (Compiler.transf_c_program csyntax)
+                     Asmexpand.expand_program with
+          | Errors.OK asm ->
+              asm
+          | Errors.Error msg ->
+            let loc = file_loc sourcename in
+              fatal_error loc "%a"  print_error msg in
+        (* Dump Asm in binary and JSON format *)
+        AsmToJSON.print_if asm sourcename;
+        (* Print Asm in text form *)
+        let oc = open_out ofile in
+        PrintAsm.print_program oc asm;
+        close_out oc
 
 (* From C source to asm *)
 
@@ -341,6 +360,7 @@ let cmdline_actions =
   Exact "-dclight", Set option_dclight;
   Exact "-dcminor", Set option_dcminor;
   Exact "-drtl", Set option_drtl;
+  Exact "-dsharemind", Set option_dsharemind;
   Exact "-dltl", Set option_dltl;
   Exact "-dalloctrace", Set option_dalloctrace;
   Exact "-dmach", Set option_dmach;

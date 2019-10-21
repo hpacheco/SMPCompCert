@@ -190,6 +190,21 @@ Definition chunk_of_type (ty: typ) :=
   | Tany64 => Many64
   end.
 
+(* size in bytes *)
+Definition chunk_size (c: memory_chunk) : Z :=
+  match c with
+  | Mint8signed => 1
+  | Mint8unsigned => 1
+  | Mint16signed => 2
+  | Mint16unsigned => 2
+  | Mint32 => 4
+  | Mint64 => 8
+  | Mfloat32 => 4
+  | Mfloat64 => 8
+  | Many32 => 4
+  | Many64 => 8
+  end.
+
 Lemma chunk_of_Tptr: chunk_of_type Tptr = Mptr.
 Proof. unfold Mptr, Tptr; destruct Archi.ptr64; auto. Qed.
 

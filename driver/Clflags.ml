@@ -42,6 +42,7 @@ let option_dcmedium = ref false
 let option_dclight = ref false
 let option_dcminor = ref false
 let option_drtl = ref false
+let option_dsharemind = ref false
 let option_dltl = ref false
 let option_dalloctrace = ref false
 let option_dmach = ref false

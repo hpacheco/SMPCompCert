@@ -180,9 +180,6 @@ Record function : Type := mkfunction {
   fn_body: statement
 }.
 
-Definition prepend_function_body (s: statement) (f: function) : function :=
- mkfunction (f.(fn_return)) (f.(fn_callconv)) (f.(fn_params)) (f.(fn_vars)) (Ssequence s f.(fn_body)).
-
 Definition var_names (vars: list(ident * type)) : list ident :=
   List.map (@fst ident type) vars.
 

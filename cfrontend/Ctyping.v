@@ -153,8 +153,8 @@ Definition type_binop (op: binary_operation) (ty1 ty2: type) : res type :=
 
 Definition type_deref (ty: type) : res type :=
   match ty with
-  | Tpointer tyelt _ => OK tyelt
-  | Tarray tyelt _ _ => OK tyelt
+  | Tpointer tyelt a => OK (merge_attributes tyelt (noattr a.(attr_secret)))
+  | Tarray tyelt _ a => OK (merge_attributes tyelt (noattr a.(attr_secret)))
   | Tfunction _ _ _ => OK ty
   | _ => Error (msg "operator prefix *")
   end.

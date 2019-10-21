@@ -17,6 +17,7 @@
 
 open C
 open Cutil
+open String
 
 (* The set of all identifiers referenced so far *)
 let referenced = ref IdentSet.empty
@@ -34,8 +35,21 @@ let addref id =
     ref_changed := true
   end
 
+let substring s1 s2 = 
+  try
+    let start = String.index s2 (String.get s1 0) in
+    String.equal (String.sub s2 start (String.length s1)) s1
+  with | _ -> false
+
+let prefix s1 s2 = 
+    try
+        let len1 = length s1 in
+        String.equal (String.sub s2 0 len1) s1
+    with | _ -> false
+
+  (*hpacheco: hack to avoid removing implicit classifies*)
 let needed id =
-  IdentSet.mem id !referenced
+  IdentSet.mem id !referenced || prefix "copy" id.name || prefix "delete" id.name || prefix "new" id.name || prefix "load" id.name || prefix "store" id.name || prefix "classify" id.name || prefix "new" id.name || substring "_to_" id.name
 
 (* Iterate [addref] on all syntactic categories. *)
 

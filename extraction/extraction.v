@@ -22,6 +22,8 @@ Require Floats.
 Require SelectLong.
 Require Selection.
 Require RTLgen.
+Require Sharemindgen.
+Require Sharemindext.
 Require Inlining.
 Require ValueDomain.
 Require Tailcall.
@@ -30,6 +32,7 @@ Require Bounds.
 Require Ctypes.
 Require Csyntax.
 Require Ctyping.
+Require Ctypingsec.
 Require Clight.
 Require Compiler.
 Require Parser.
@@ -93,6 +96,21 @@ Extract Constant Linearize.enumerate_aux => "Linearizeaux.enumerate_aux".
 Extract Constant SimplExpr.first_unused_ident => "Camlcoq.first_unused_ident".
 Extraction Inline SimplExpr.ret SimplExpr.error SimplExpr.bind SimplExpr.bind2.
 
+(* Ctypingsec *)
+Extract Constant Ctypingsec.show_expr => "PrintCsyntax.show_expr".
+Extract Constant Ctypingsec.new_tmp => "Camlcoq.new_tmp".
+
+(* Sharemindgen *)
+Extract Constant Sharemindgen.intern_string => "Camlcoq.sharemind_intern_string".
+Extract Constant Sharemindgen.intern_node => "Camlcoq.sharemind_intern_node".
+Extract Constant Sharemindgen.intern_keyword => "Camlcoq.sharemind_intern_keyword".
+Extraction Inline Sharemindgen.ret Sharemindgen.error Sharemindgen.bind Sharemindgen.bind2.
+
+(* Sharemindext *)
+Extract Constant Sharemindext.intern_string => "Camlcoq.sharemind_intern_string".
+Extraction Inline Sharemindext.option_compose Sharemindext.forPTree.
+
+
 (* Compopts *)
 Extract Constant Compopts.optim_for_size =>
   "fun _ -> !Clflags.option_Osize".
@@ -120,6 +138,7 @@ Extract Constant Compiler.print_Csyntax => "PrintCsyntax.print_if".
 Extract Constant Compiler.print_Clight => "PrintClight.print_if".
 Extract Constant Compiler.print_Cminor => "PrintCminor.print_if".
 Extract Constant Compiler.print_RTL => "PrintRTL.print_if".
+(*Extract Constant Compiler.print_Sharemind => "PrintSharemind.print_if".*)
 Extract Constant Compiler.print_LTL => "PrintLTL.print_if".
 Extract Constant Compiler.print_Mach => "PrintMach.print_if".
 Extract Constant Compiler.print => "fun (f: 'a -> unit) (x: 'a) -> f x; x".
@@ -169,14 +188,15 @@ Cd "extraction".
 
 Separate Extraction
    Compiler.transf_c_program Compiler.transf_cminor_program
+   Compiler.transf_c_program_to_sharemind Compiler.transf_cminor_program_to_sharemind
    Cexec.do_initial_state Cexec.do_step Cexec.at_final_state
    Ctypes.merge_attributes Ctypes.remove_attributes Ctypes.build_composite_env
    Initializers.transl_init Initializers.constval
    Csyntax.Epreincr
    Ctyping.typecheck_program
    Ctyping.eexternal
-   Ctypingsec.typecheck_secure_program
    Ctyping.epostincr Ctyping.epostdecr Ctyping.epreincr Ctyping.epredecr
+   Ctypingsec.typecheck_secure_program
    Ctypes.make_program
    Clight.type_of_function
    Conventions1.callee_save_type Conventions1.is_float_reg
@@ -184,6 +204,9 @@ Separate Extraction
    Conventions1.int_callee_save_regs Conventions1.float_callee_save_regs
    Conventions1.dummy_int_reg Conventions1.dummy_float_reg
    RTL.instr_defs RTL.instr_uses
+   Sharemind.noprogram
+   Sharemindgen.transl_program
+   Sharemindext.transl_ext_program
    Machregs.mregs_for_operation Machregs.mregs_for_builtin
    Machregs.two_address_op Machregs.is_stack_reg
    Machregs.destroyed_at_indirect_call

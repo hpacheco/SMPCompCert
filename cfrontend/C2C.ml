@@ -928,7 +928,7 @@ let rec convertExpr env e =
                Tvoid)
 
   | C.ECall({edesc = C.EVar {name = "printf"}}, args)
-    when !Clflags.option_interp ->
+    (*when !Clflags.option_interp*) ->
       let targs = convertTypArgs env [] args
       and tres = convertTyp env e.etyp in
       let sg =
@@ -954,12 +954,13 @@ let rec convertExpr env e =
           | Some ef -> ewrap (Ctyping.eexternal ef (convertExpr env fn) (convertExprList env args))
           | None -> ewrap (Ctyping.ecall (convertExpr env fn) (convertExprList env args))
           end
-      | _ -> error "call has no name"; ezero
+      | _ -> ewrap (Ctyping.ecall (convertExpr env fn) (convertExprList env args))
+          (* error "call has no name"; ezero*)
+          (*TODO: disallow function pointers to external functions, since they don't go into the event trace*)
 
 and convertLvalue env e =
   match e.edesc with
-  | C.EVar id ->
-      Evar(intern_string id.name, convertTyp env e.etyp)
+  | C.EVar id -> Evar(intern_string id.name, convertTyp env e.etyp)
   | C.EUnop(C.Oderef, e1) ->
       ewrap (Ctyping.ederef (convertExpr env e1))
   | C.EUnop(C.Odot id, e1) ->

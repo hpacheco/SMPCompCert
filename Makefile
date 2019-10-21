@@ -73,6 +73,7 @@ BACKEND=\
   SelectLongproof.v Selectionproof.v \
   Registers.v RTL.v \
   RTLgen.v RTLgenspec.v RTLgenproof.v \
+  Sharemind.v Sharemindgen.v Sharemindext.v \
   Tailcall.v Tailcallproof.v \
   Inlining.v Inliningspec.v Inliningproof.v \
   Renumber.v Renumberproof.v \

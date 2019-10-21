@@ -292,6 +292,7 @@ let intern_string s =
     Hashtbl.add atom_of_string s a;
     Hashtbl.add string_of_atom a s;
     a
+
 let extern_atom a =
   try
     Hashtbl.find string_of_atom a
@@ -323,6 +324,25 @@ let coqstring_uppercase_ascii_of_camlstring s =
       s.[pos] in
     cstring (d :: accu) (pos - 1)
   in cstring [] (String.length s - 1)
+
+(* hpacheco: used for generating temporary variables *)
+let new_tmp () =
+      let a = !next_atom in
+      let s = Printf.sprintf "SHM_tmp_%d" (P.to_int a) in
+      next_atom := Pos.succ !next_atom;
+      Hashtbl.add atom_of_string s a;
+      Hashtbl.add string_of_atom a s;
+      a
+    
+(* hpacheco: used for generating intermediate labels in Sharemindgen *)  
+let sharemind_intern_string s =
+    let str = Printf.sprintf "SHM_%s" (camlstring_of_coqstring s) in
+    intern_string str
+let sharemind_intern_node (id: atom) (n : positive) =
+    let str = Printf.sprintf "SHM_%s_%d" (extern_atom id) (P.to_int n) in
+    intern_string str
+let sharemind_intern_keyword s =
+    intern_string (camlstring_of_coqstring s)
 
 (* Floats *)
 
@@ -386,3 +406,4 @@ let compare (x:int) (y:int) =
   end
 
 end
+

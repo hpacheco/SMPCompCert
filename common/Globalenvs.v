@@ -916,6 +916,18 @@ Proof.
 - discriminate.
 Qed.
 
+(*Definition val_of_init_data (i: init_data) : val :=
+  match i with
+  | Init_int8 i => Vint i
+  | Init_int16 i => Vint i
+  | Init_int32 i => Vint i
+  | Init_int64 i => Vlong i
+  | Init_float32 f => Vsingle f
+  | Init_float64 f => Vfloat f
+  | Init_space z => Vlong (Int64.repr 0)
+  | Init_addrof id ofs => symbol_address ge id ofs
+  end.*)
+
 Definition bytes_of_init_data (i: init_data): list memval :=
   match i with
   | Init_int8 n => inj_bytes (encode_int 1%nat (Int.unsigned n))

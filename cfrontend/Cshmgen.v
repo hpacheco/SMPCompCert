@@ -125,12 +125,12 @@ Definition make_cmpu_ne_zero (e: expr) :=
 Definition sizeof (ce: composite_env) (t: type) : res Z :=
   if complete_type ce t
   then OK (Ctypes.sizeof ce t)
-  else Error (msg "incomplete type").
+  else Error (msg "sizeof: incomplete type").
 
 Definition alignof (ce: composite_env) (t: type) : res Z :=
   if complete_type ce t
   then OK (Ctypes.alignof ce t)
-  else Error (msg "incomplete type").
+  else Error (msg "alignof: incomplete type").
 
 (** [make_cast from to e] applies to [e] the numeric conversions needed
    to transform a result of type [from] to a result of type [to]. *)

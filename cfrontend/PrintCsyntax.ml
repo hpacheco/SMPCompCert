@@ -314,8 +314,10 @@ and extended_asm p txt res args clob =
   end;
   fprintf p ")@]"
 
-let print_expr p e = expr p (0, e)
+let print_expr (p: Format.formatter) e = expr p (0, e)
 let print_exprlist p el = exprlist p (true, el)
+
+let show_expr (e:expr) = print_expr str_formatter e; coqstring_of_camlstring (flush_str_formatter ())
 
 (* Statements *)
 

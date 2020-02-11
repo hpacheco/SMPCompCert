@@ -16,7 +16,7 @@ Local Open Scope error_monad_scope.
 **)
 
 Parameter show_expr : expr -> string.
-Parameter new_tmp : unit -> ident.
+(* Parameter new_tmp : unit -> ident. *)
 
 Definition mergeOption {A: Type} (ox oy: option A) : option A :=
     match ox with
@@ -37,9 +37,9 @@ Definition singlePTree {A: Type} (p: (ident * A)) : PTree.t A :=
     PTree.set (fst p) (snd p) (PTree.empty A).
 
 (* temporary variables *)
-Definition tmps := PTree.t type.
+(* Definition tmps := PTree.t type. *)
 
-Definition notmps : tmps := PTree.empty type.
+(*Definition notmps : tmps := PTree.empty type.*)
 
 Fixpoint is_ext_lval (e: expr) : bool :=
     match e with
@@ -174,7 +174,8 @@ Definition builtin_store_array (t: type) (e1 e2 e3: expr) : expr :=
     Ebuiltin (external_store_array t) (Tcons (typeof e1) (Tcons (typeof e2) (Tcons (typeof e3) Tnil))) (Econs e1 (Econs e2 (Econs e3 Enil))) Tvoid.
 Definition builtin_copy_array (t: type) (e1 e2: expr) : expr :=
     Ebuiltin (external_copy_array t) (Tcons (typeof e1) (Tcons (typeof e2) Tnil)) (Econs e1 (Econs e2 Enil)) Tvoid.
-    
+
+(**    
 Definition external_new (t: type) : external_function :=
     EF_external ("new_"++show_type (make_public_type t)) (mksignature nil (Some (typ_of_type t)) cc_default).
 Definition external_delete (t: type) : external_function :=
@@ -208,6 +209,7 @@ Definition builtin_binop (n: string) (t: type) (e1 e2: expr) : expr :=
 
 Definition builtin_convert (t1 t2: type) (e: expr) : expr :=
     Ebuiltin (external_convert t1 t2) (Tcons t1 Tnil) (Econs e Enil) t2.
+**)
 
 (** Introduce secure builtins **)
 
@@ -764,7 +766,9 @@ Definition retype_secure_program (p: program) : res program :=
   
   make_program p'.(prog_types) defs' p'.(prog_public) p'.(prog_main).
 
-(** Remove security qualifiers **)
+(**
+    Remove security qualifiers
+**)
 
 Fixpoint remsec_type (t : type) : res type := 
   let tsec := Tlong Unsigned (make_public_attr (attr_of_type t)) in

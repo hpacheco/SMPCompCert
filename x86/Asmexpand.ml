@@ -554,8 +554,11 @@ let expand_instruction instr =
           expand_annot_val kind txt targ args res
        | EF_annot _ | EF_debug _ | EF_inline_asm _ ->
           emit instr
-       | _ ->
-          assert false
+       | EF_external _ -> raise (Error "unsupported expand_instruction EF_external")
+       | EF_runtime _ -> raise (Error "unsupported expand_instruction EF_runtime")
+       | EF_malloc _ => raise (Error "unsupported expand_instruction EF_malloc")
+       | EF_free _ => raise (Error "unsupported expand_instruction EF_free")
+       | _ -> assert false
      end
   | _ -> emit instr
 

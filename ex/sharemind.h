@@ -29,19 +29,19 @@ extern secret float32 new_float32 (void);
 extern secret float64 new_float64 (void);
 extern secret bool    new_bool    (void);*/
 
-/*
-// copy from x to y (secret values are seen as pointers)
-extern void copy_int8    (secret int8    x,secret int8    y);
-extern void copy_int16   (secret int16   x,secret int16   y);
-extern void copy_int32   (secret int32   x,secret int32   y);
-extern void copy_int64   (secret int64   x,secret int64   y);
-extern void copy_uint8   (secret uint8   x,secret uint8   y);
-extern void copy_uint16  (secret uint16  x,secret uint16  y);
-extern void copy_uint32  (secret uint32  x,secret uint32  y);
-extern void copy_uint64  (secret uint64  x,secret uint64  y);
-extern void copy_float32 (secret float32 x,secret float32 y);
-extern void copy_float64 (secret float64 x,secret float64 y);
-extern void copy_bool    (secret bool    x,secret bool    y);*/
+
+// copy secret value
+extern secret int8    copy_int8    (secret int8    x);
+extern secret int16   copy_int16   (secret int16   x);
+extern secret int32   copy_int32   (secret int32   x);
+extern secret int64   copy_int64   (secret int64   x);
+extern secret uint8   copy_uint8   (secret uint8   x);
+extern secret uint16  copy_uint16  (secret uint16  x);
+extern secret uint32  copy_uint32  (secret uint32  x);
+extern secret uint64  copy_uint64  (secret uint64  x);
+extern secret float32 copy_float32 (secret float32 x);
+extern secret float64 copy_float64 (secret float64 x);
+extern secret bool    copy_bool    (secret bool    x);
 
 /*// frees secret memory
 extern void delete_int8    (secret int8    x);
@@ -56,7 +56,6 @@ extern void delete_float32 (secret float32 x);
 extern void delete_float64 (secret float64 x);
 extern void delete_bool    (secret bool    x);*/
 
-/*
 // creates secret memory
 extern secret int8    classify_int8    (int8    x);
 extern secret int16   classify_int16   (int16   x);
@@ -68,7 +67,8 @@ extern secret uint32  classify_uint32  (uint32  x);
 extern secret uint64  classify_uint64  (uint64  x);
 extern secret float32 classify_float32 (float32 x);
 extern secret float64 classify_float64 (float64 x);
-extern secret bool    classify_bool    (bool    x);*/
+extern secret bool    classify_bool    (bool    x);
+
 
 extern int8    declassify_int8    (secret int8    x);
 extern int16   declassify_int16   (secret int16   x);
@@ -82,7 +82,7 @@ extern float32 declassify_float32 (secret float32 x);
 extern float64 declassify_float64 (secret float64 x);
 extern bool    declassify_bool    (secret bool    x);
 
-/*
+
 //creates secret memory
 extern secret int8    add_int8    (secret int8    x,secret int8    y);
 extern secret int16   add_int16   (secret int16   x,secret int16   y);
@@ -130,7 +130,6 @@ extern secret uint32  mulc_uint32  (secret uint32  x,uint32  y);
 extern secret uint64  mulc_uint64  (secret uint64  x,uint64  y);
 extern secret float32 mulc_float32 (secret float32 x,float32 y);
 extern secret float64 mulc_float64 (secret float64 x,float64 y);
-*/
 
 /* Secret arrays */
 

@@ -16,7 +16,7 @@ Local Open Scope error_monad_scope.
 **)
 
 Parameter show_expr : expr -> string.
-(* Parameter new_tmp : unit -> ident. *)
+Parameter new_tmp : unit -> ident.
 
 Definition mergeOption {A: Type} (ox oy: option A) : option A :=
     match ox with
@@ -37,15 +37,16 @@ Definition singlePTree {A: Type} (p: (ident * A)) : PTree.t A :=
     PTree.set (fst p) (snd p) (PTree.empty A).
 
 (* temporary variables *)
-(* Definition tmps := PTree.t type. *)
+Definition tmps := PTree.t type.
 
-(*Definition notmps : tmps := PTree.empty type.*)
+Definition notmps : tmps := PTree.empty type.
 
 Fixpoint is_ext_lval (e: expr) : bool :=
     match e with
     | Ecomma e1 e2 _ => is_ext_lval e2
     | Eassign l r _ => is_ext_lval l
     | Eloc _ _ _ | Evar _ _ | Ederef _ _ | Efield _ _ _ => true
+    | Evalof e1 _ => is_ext_lval e1
     | _ => false
     end.
 
@@ -151,21 +152,27 @@ Fixpoint show_type (t: type) : string :=
   | _ => "error"
   end.
 
+Definition one_val : val := (Vint Int.one).
+Definition one_expr : expr := Csyntax.Eval one_val (Tlong Unsigned pnoattr).
+
 (** builtins **)
 
+Definition astsec : AST.typ := AST.Tlong.
+Definition tsec (a:attr) : type := Tlong Unsigned a.
+
 Definition external_new_array (t: type) : external_function :=
-    EF_external ("new_"++show_type (make_public_type t)++"_array") (mksignature (cons AST.Tlong nil) (Some Tptr) cc_default).
+    EF_external ("new_"++show_type (make_public_type t)++"_array") (mksignature (cons AST.Tlong nil) (Some astsec) cc_default).
 Definition external_delete_array (t: type) : external_function :=
-    EF_external ("delete_"++show_type (make_public_type t)++"_array") (mksignature (cons Tptr nil) None cc_default).
+    EF_external ("delete_"++show_type (make_public_type t)++"_array") (mksignature (cons astsec nil) None cc_default).
 Definition external_load_array (t: type) : external_function :=
-    EF_external ("load_"++show_type (make_public_type t)++"_array") (mksignature (cons Tptr (cons AST.Tlong nil)) (Some (typ_of_type t)) cc_default).
+    EF_external ("load_"++show_type (make_public_type t)++"_array") (mksignature (cons astsec (cons AST.Tlong nil)) (Some (typ_of_type t)) cc_default).
 Definition external_store_array (t: type) : external_function :=
-    EF_external ("store_"++show_type (make_public_type t)++"_array") (mksignature (cons Tptr (cons AST.Tlong (cons (typ_of_type t) nil))) None cc_default).
+    EF_external ("store_"++show_type (make_public_type t)++"_array") (mksignature (cons astsec (cons AST.Tlong (cons (typ_of_type t) nil))) None cc_default).
 Definition external_copy_array (t: type) : external_function :=
-    EF_external ("copy_"++show_type (make_public_type t)++"_array") (mksignature (cons Tptr (cons Tptr nil)) None cc_default).
+    EF_external ("copy_"++show_type (make_public_type t)++"_array") (mksignature (cons astsec (cons astsec nil)) None cc_default).
     
 Definition builtin_new_array (t: type) (e1: expr) : expr :=
-    Ebuiltin (external_new_array t) (Tcons (typeof e1) Tnil) (Econs e1 Enil) (Tpointer t snoattr).
+    Ebuiltin (external_new_array t) (Tcons (typeof e1) Tnil) (Econs e1 Enil) (Tpointer (make_public_type (typeof e1)) snoattr).
 Definition builtin_delete_array (t: type) (e1: expr) : expr :=
     Ebuiltin (external_delete_array t) (Tcons (typeof e1) Tnil) (Econs e1 Enil) Tvoid.
 Definition builtin_load_array (t: type) (e1 e2: expr) : expr :=
@@ -175,41 +182,46 @@ Definition builtin_store_array (t: type) (e1 e2 e3: expr) : expr :=
 Definition builtin_copy_array (t: type) (e1 e2: expr) : expr :=
     Ebuiltin (external_copy_array t) (Tcons (typeof e1) (Tcons (typeof e2) Tnil)) (Econs e1 (Econs e2 Enil)) Tvoid.
 
-(**    
-Definition external_new (t: type) : external_function :=
+
+(*Definition external_new (t: type) : external_function :=
     EF_external ("new_"++show_type (make_public_type t)) (mksignature nil (Some (typ_of_type t)) cc_default).
 Definition external_delete (t: type) : external_function :=
-    EF_external ("delete_"++show_type (make_public_type t)) (mksignature (cons (typ_of_type t) nil) None cc_default).
+    EF_external ("delete_"++show_type (make_public_type t)) (mksignature (cons (typ_of_type t) nil) None cc_default).*)
 Definition external_classify (t: type) : external_function :=
     EF_external ("classify_"++show_type (make_public_type t)) (mksignature (cons (typ_of_type t) nil) (Some (typ_of_type t)) cc_default).
 Definition external_declassify (t: type) : external_function :=
     EF_external ("declassify_"++show_type (make_public_type t)) (mksignature (cons (typ_of_type t) nil) (Some (typ_of_type t)) cc_default).
 Definition external_copy (t: type) : external_function :=
-    EF_external ("copy_"++show_type (make_public_type t)) (mksignature (cons (typ_of_type t) (cons (typ_of_type t) nil)) None cc_default).
+    EF_external ("copy_"++show_type (make_public_type t)) (mksignature (cons (typ_of_type t) nil) (Some (typ_of_type t)) cc_default).
 Definition external_binop (n: string) (t t1 t2: type) : external_function :=
     EF_external (n++"_"++show_type (make_public_type t)) (mksignature (cons (typ_of_type t1) (cons (typ_of_type t2) nil)) (Some (typ_of_type t)) cc_default).
     
-Definition external_convert (t1 t2: type) : external_function :=
-    EF_external (show_type (make_public_type t1) ++ "_to_" ++ show_type (make_public_type t2)) (mksignature (cons (typ_of_type t1) nil) (Some (typ_of_type t2)) cc_default).
-    
-Definition builtin_new (t: type) : expr :=
+(*Definition builtin_new (t: type) : expr :=
     Ebuiltin (external_new t) Tnil Enil (make_secret_type t).
 Definition builtin_delete (t: type) (e1: expr) : expr :=
-    Ebuiltin (external_delete t) (Tcons (typeof e1) Tnil) (Econs e1 Enil) Tvoid.
+    Ebuiltin (external_delete t) (Tcons (typeof e1) Tnil) (Econs e1 Enil) Tvoid.*)
 Definition builtin_classify (t: type) (e1: expr) : expr :=
     Ebuiltin (external_classify t) (Tcons (typeof e1) Tnil) (Econs e1 Enil) (make_secret_type t).
 Definition builtin_declassify (t: type) (e1: expr) : expr :=
     Ebuiltin (external_declassify t) (Tcons (typeof e1) Tnil) (Econs e1 Enil) (make_public_type t).
-Definition builtin_copy (t: type) (e1 e2: expr) : expr :=
-    Ebuiltin (external_copy t) (Tcons (typeof e1) (Tcons (typeof e2) Tnil)) (Econs e1 (Econs e2 Enil)) Tvoid.
+Definition builtin_copy (t: type) (e1: expr) : expr :=
+    Ebuiltin (external_copy t) (Tcons (typeof e1) Tnil) (Econs e1 Enil) (typeof e1).
 Definition builtin_binop (n: string) (t: type) (e1 e2: expr) : expr :=
     let t1 := typeof e1 in
     let t2 := typeof e2 in
     Ebuiltin (external_binop n t t1 t2) (Tcons t1 (Tcons t2 Tnil)) (Econs e1 (Econs e2 Enil)) (typeof e1).
 
+Definition external_convert (t1 t2: type) : external_function :=
+    EF_external (show_type (make_public_type t1) ++ "_to_" ++ show_type (make_public_type t2)) (mksignature (cons (typ_of_type t1) nil) (Some (typ_of_type t2)) cc_default).
+
 Definition builtin_convert (t1 t2: type) (e: expr) : expr :=
     Ebuiltin (external_convert t1 t2) (Tcons t1 Tnil) (Econs e Enil) t2.
-**)
+
+Definition external_convert_array (t1 t2: type) : external_function :=
+    EF_external (show_type (make_public_type t1) ++ "_to_" ++ show_type (make_public_type t2)) (mksignature (cons (typ_of_type t1) (cons (typ_of_type t2) nil)) None cc_default).
+
+Definition builtin_convert_array (t1 t2: type) (e1 e2: expr) : expr :=
+    Ebuiltin (external_convert_array t1 t2) (Tcons t1 (Tcons t2 Tnil)) (Econs e1 (Econs e2 Enil)) Tvoid.
 
 (** Introduce secure builtins **)
 
@@ -222,121 +234,144 @@ Definition is_malloc_expr (e: expr) : bool :=
     | _ => false
     end.
 
-Definition secure_cast (n: string) (rt: type) (e:expr) : res expr :=
+(* mark intermediate secret data as temporary (so that it is freed later *)
+Definition ret_tmp_expr (a: expr) (ts: tmps) : res (expr * tmps) :=
+    let t := typeof a in
+    if type_is_secret t && is_base_type t && negb (is_ext_lval a)
+        then 
+            let tmp := new_tmp tt in
+            let tmpv := Evar tmp t in
+            let ts' := PTree.set tmp t ts in
+            OK (Eassign tmpv a t,ts')
+        else OK (a,ts).
+
+Definition secure_cast (n: string) (rt: type) (e:expr) : res (expr * tmps) :=
     let et := typeof e in
-    if negb (type_has_secret et) && negb (type_has_secret rt) then OK e
-    else if type_eq et rt then OK e
+    if negb (type_has_secret et) && negb (type_has_secret rt) then OK (e,notmps)
+    else if type_eq et rt then OK (e,notmps)
     else match (et,rt) with
     ((Tint _ _ a1 | Tlong _ a1 | Tfloat _ a1),(Tint _ _ a2 | Tlong _ a2 | Tfloat _ a2)) => 
         match (attr_secret a1,attr_secret a2) with
-        | (true,true) => OK (builtin_convert et rt e)
-        | (false,true) => let e' := Ecast e (make_public_type rt) in OK (builtin_classify rt e')
-        | _ => Error (msg (n++" unsupported cast from secure to non-secure type, try declassify"))
+        | (true,true) => 
+            ret_tmp_expr (builtin_convert et rt e) notmps
+        | (false,true) =>
+            let prt := make_public_type rt in
+            let e' := Ecast e prt in
+            ret_tmp_expr (builtin_classify rt e') notmps
+        | _ => Error (msg (n++" unsupported cast from " ++ show_type et ++ " to " ++ show_type rt ++ ", try declassify"))
         end
     | (Tarray bt2 _ a2,Tpointer bt1 a1) =>
-        if (eqb (attr_secret a1) (attr_secret a2)) && type_eq bt1 bt2 then OK e
+        if (eqb (attr_secret a1) (attr_secret a2)) && type_eq bt1 bt2 then OK (e,notmps)
         else Error (msg ("unsupported secure conversion from " ++ show_type et ++ " to " ++ show_type rt))
     | (Tpointer bt1 a1,Tpointer bt2 a2) => 
-        if negb (attr_secret a1) && negb (attr_secret a2) && is_malloc_expr e then OK e
+        if negb (attr_secret a1) && negb (attr_secret a2) && is_malloc_expr e then OK (e,notmps)
         else Error (msg ("unsupported secure conversion from " ++ show_type et ++ " to " ++ show_type rt))
     | _ => Error (msg ("unsupported secure conversion from " ++ show_type et ++ " to " ++ show_type rt))
     end.
 
-Definition secure_unop_expr (op: unary_operation) (t: type) (e1 : expr) : res expr :=
+Definition secure_unop_expr (op: unary_operation) (t: type) (e1 : expr) : res (expr * tmps) :=
   do _ <- check_secret t ("secure "++show_unop op);
   match (op,t) with
   | _ => Error (msg ("unsupported secure "++show_unop op))
   end.
 
-Definition secure_unop (op : unary_operation) (t: type) (e1: expr): res (expr) :=
+Definition secure_unop (op : unary_operation) (t: type) (e1: expr): res (expr * tmps) :=
   match (type_is_secret (typeof e1)) with
   | false => (* assumes that regular casts preserve non-top-level security tags*)
-      OK (Eunop op e1 t)
+      OK (Eunop op e1 t,notmps)
   | _ =>
-      do e1' <- secure_cast "secure_unop" t e1;
-      secure_unop_expr op t e1'
+      do (e1',tmps1) <- secure_cast "secure_unop" t e1;
+      do (e1'',tmps2) <- secure_unop_expr op t e1';
+      OK (e1'',mergePTree tmps1 tmps2)
   end.
 
-Definition secure_cast_binop (op : type -> expr -> expr -> res expr) (t: type) (e1 e2: expr) : res expr :=
-    do e1' <- secure_cast "secure_cast_binop1" t e1;
-    do e2' <- secure_cast "secure_cast_binop2" t e2;
-    op t e1' e2'.
+Definition secure_cast_binop (op : type -> expr -> expr -> res (expr * tmps)) (t: type) (e1 e2: expr) : res (expr * tmps) :=
+    do (e1',tmps1) <- secure_cast "secure_cast_binop1" t e1;
+    do (e2',tmps2) <- secure_cast "secure_cast_binop2" t e2;
+    do (e',tmps3) <- op t e1' e2';
+    OK (e',mergePTree tmps1 (mergePTree tmps2 tmps3)).
 
 (* does not assume that both expressions have the same type *)
-Definition secure_binop_expr (op: binary_operation) (t: type) (e1 e2 : expr) : res expr :=
+Definition secure_binop_expr (op: binary_operation) (t: type) (e1 e2 : expr) : res (expr * tmps) :=
     let t1 := typeof e1 in
     let t2 := typeof e2 in
     if is_base_type t
         then match op with
+        (*
         | Oadd =>
             do e1' <- secure_cast "secure_cast_binop1" t e1;
             do e2' <- secure_cast "secure_cast_binop2" t e2;
-            OK (builtin_binop "add" t e1' e2')
+            ret_tmp_expr (builtin_binop "add" t e1' e2')
         | Osub =>
             do e1' <- secure_cast "secure_cast_binop1" t e1;
             do e2' <- secure_cast "secure_cast_binop2" t e2;
-            OK (builtin_binop "sub" t e1' e2')
+            ret_tmp_expr (builtin_binop "sub" t e1' e2')
         | Omul => match (type_is_secret t1,type_is_secret t2) with
             | (true,true) => 
                 do e1' <- secure_cast "secure_cast_binop1" t e1;
                 do e2' <- secure_cast "secure_cast_binop2" t e2;
-                OK (builtin_binop "mul" t e1' e2')
+                ret_tmp_expr (builtin_binop "mul" t e1' e2')
             | (true,false) =>
                 do e1' <- secure_cast "secure_cast_binop1" t e1;
                 do e2' <- public_cast "public_cast_binop2" (make_public_type t) e2;
-                OK (builtin_binop "mulc" t e1' e2')
+                ret_tmp_expr (builtin_binop "mulc" t e1' e2')
             | (false,true) =>
                 do e1' <- public_cast "public_cast_binop1" (make_public_type t) e1;
                 do e2' <- secure_cast "secure_cast_binop2" t e2;
-                OK (builtin_binop "mulc" t e2' e1')
+                ret_tmp_expr (builtin_binop "mulc" t e2' e1')
             | (false,false) => Error (msg ("unexpected public binop"))
             end
+        *)
         | _ => Error (msg ("unsupported secure binop"))
         end
         else Error (msg ("unsupported secure binop")).
 
-Definition secure_eseqand_expr (t: type) (e1 e2 : expr) : res expr :=
+Definition secure_eseqand_expr (t: type) (e1 e2 : expr) : res (expr * tmps) :=
   do _ <- check_secret t "secure &&";
   match t with
+  (*
   | Tint IBool _ _ => OK (builtin_binop "and" t e1 e2)
+  *)
   | _ => Error (msg "unsupported secure &&")
   end.
   
-Definition secure_eseqor_expr (t: type) (e1 e2 : expr) : res expr :=
+Definition secure_eseqor_expr (t: type) (e1 e2 : expr) : res (expr * tmps) :=
   do _ <- check_secret t "secure logical ||";
   match t with
+  (*
   | Tint IBool _ _ => OK (builtin_binop "or" t e1 e2)
+  *)
   | _ => Error (msg "unsupported secure ||")
   end.
 
-Definition retype_secure_binop (pop : expr -> expr -> type -> expr) (sop : type -> expr -> expr -> res expr) (t: type) (e1 e2: expr): res (expr) :=
+Definition retype_secure_binop (pop : expr -> expr -> type -> expr) (sop : type -> expr -> expr -> res (expr * tmps)) (t: type) (e1 e2: expr): res (expr * tmps) :=
   match (type_is_secret (typeof e1),type_is_secret (typeof e2)) with
   | (false,false) => (* assumes that regular casts preserve non-top-level security tags*)
-      OK (pop e1 e2 t)
+      OK (pop e1 e2 t,notmps)
   | _ => sop t e1 e2
   end.
 
-Definition secure_condition (t: type) (e1 e2 e3: expr) : res expr :=
+Definition secure_condition (t: type) (e1 e2 e3: expr) : res (expr * tmps) :=
     do _ <- check_public (typeof e1) "conditional";
-    do e2' <- secure_cast "secure_condition2" t e2;
-    do e3' <- secure_cast "secure_condition3" t e3;
-    OK (Econdition e1 e2' e3' t).
+    do (e2',tmps1) <- secure_cast "secure_condition2" t e2;
+    do (e3',tmps2) <- secure_cast "secure_condition3" t e3;
+    OK (Econdition e1 e2' e3' t,mergePTree tmps1 tmps2).
 
-Fixpoint retype_secure_arguments (el: exprlist) (tyl: typelist) : res exprlist :=
+Fixpoint retype_secure_arguments (el: exprlist) (tyl: typelist) : res (exprlist * tmps) :=
   match el, tyl with
-  | Enil, _ => OK Enil
-  | _, Tnil => OK el
+  | Enil, _ => OK (Enil,notmps)
+  | _, Tnil => OK (el,notmps)
   | Econs e1 el, Tcons ty1 tyl =>
-      do e1' <- secure_cast "retype_secure_arguments" ty1 e1;
-      do el' <- retype_secure_arguments el tyl;
-      OK (Econs e1' el')
+      do (e1',tmps1) <- secure_cast "retype_secure_arguments" ty1 e1;
+      do (el',tmps2) <- retype_secure_arguments el tyl;
+      OK (Econs e1' el',mergePTree tmps1 tmps2)
   end.
 
-Definition secure_call (name : expr) (args : exprlist) : res expr :=
+Definition secure_call (name : expr) (args : exprlist) : res (expr * tmps) :=
     match classify_fun (typeof name) with
     | fun_case_f tyargs tyres cconv =>
-        do args' <- retype_secure_arguments args tyargs;
-        OK (Ecall name args' tyres)
+        do (args',tmps1) <- retype_secure_arguments args tyargs;
+        OK (Ecall name args' tyres,tmps1)
     | _ =>
         Error (msg "call: not a function")
     end.
@@ -376,9 +411,9 @@ Fixpoint split_array_proj (e: expr) : res (expr * expr) :=
   | _ => Error (msg ("secure pointer dereferencing could not be converted into projection "++ show_expr e))
   end.
 
-Definition secure_load_array (t: type) (x : expr) (i: expr) : res expr :=
+Definition secure_load_array (t: type) (x : expr) (i: expr) : res (expr * tmps) :=
   if is_base_type t
-      then OK (builtin_load_array t x i)
+      then ret_tmp_expr (builtin_load_array t x i) notmps
       else Error (msg "unsupported secure array load").
 
 (* assumes that dereference is well-typed *)
@@ -389,8 +424,7 @@ Definition retype_secure_deref (go: expr -> res (expr * tmps)) (e: expr) (t: typ
           OK (Ederef e' t,tmps)
       else 
           do (x,i) <- split_array_proj e;
-          do e' <- secure_load_array t x i;
-          OK (e',notmps).
+          secure_load_array t x i.
 
 Definition secure_store_array (t: type) (l i r: expr) : res expr :=
   if is_base_type t
@@ -399,13 +433,13 @@ Definition secure_store_array (t: type) (l i r: expr) : res expr :=
 
 Definition retype_secure_assign_by_type (l: expr) (r: expr) (t: type) : res expr :=
     match t with
-    (Tint _ _ _ | Tlong _ _ | Tfloat _ _) => OK (builtin_copy t r l)
+    (Tint _ _ _ | Tlong _ _ | Tfloat _ _) => OK (Eassign l (builtin_copy t r) t)
+        (*OK (Ecomma (builtin_copy_array t r l) l t)*)
     | Tpointer _ _ => OK (Eassign l r t)
-(*    | Tarray bt _ _ => OK (builtin_copy_array bt r l) *)
+    (* | Tarray bt _ _ => OK (builtin_copy_array bt r l) *)
     | _ => Error (msg "secure assign to a variable")
     end.
 
-(*TODO: free secure data on right-side expressions! *)
 Definition retype_secure_assign (go: expr -> res (expr * tmps)) (l r: expr) (t: type) : res (expr * tmps) :=
   if type_is_public (typeof l)
       then
@@ -413,7 +447,9 @@ Definition retype_secure_assign (go: expr -> res (expr * tmps)) (l r: expr) (t: 
           OK (Eassign l' r t,tmps)
       else
           match l with
-          | Evar n nt => do a' <- retype_secure_assign_by_type (Evar n nt) r nt; OK (a',notmps)
+          | Evar n nt =>
+              do a' <- retype_secure_assign_by_type (Evar n nt) r nt;
+              OK (a',notmps)
           | Ederef lptr tptr => if type_is_public (typeof lptr)
               then 
                   do (lptr',tmps) <- go lptr;
@@ -427,16 +463,6 @@ Definition retype_secure_assign (go: expr -> res (expr * tmps)) (l r: expr) (t: 
           | Eloc _ _ _ => Error (msg "secure assign loc")
           | _ => Error (msg "secure assign not a l-value")
           end.
-
-Definition ret_tmp_expr (a: expr) (ts: tmps) : res (expr * tmps) :=
-    let t := typeof a in
-    if type_is_secret t && is_base_type t && negb (is_ext_lval a)
-        then 
-            let tmp := new_tmp tt in
-            let tmpv := Evar tmp t in
-            let ts' := PTree.set tmp t ts in
-            OK (Eassign tmpv a t,ts')
-        else OK (a,ts).
 
 (* returns a typechecked expression with security ops replaced by builtins *)
 Fixpoint retype_secure_expr (ce: composite_env) (e: typenv) (a: expr) : res (expr * tmps) :=
@@ -456,60 +482,60 @@ Fixpoint retype_secure_expr (ce: composite_env) (e: typenv) (a: expr) : res (exp
       do (l',tmps) <- retype_secure_expr ce e l;
       ret_tmp_expr (Eaddrof l' t) tmps
   | Eunop op r1 t =>
-      do (r1',tmps) <- retype_secure_expr ce e r1;
-      do a' <- secure_unop op t r1';
-      ret_tmp_expr (a') tmps
+      do (r1',tmps1) <- retype_secure_expr ce e r1;
+      do (a',tmps2) <- secure_unop op t r1';
+      ret_tmp_expr (a') (mergePTree tmps1 tmps2)
   | Ebinop op r1 r2 t =>
       do (r1',tmps1) <- retype_secure_expr ce e r1;
       do (r2',tmps2) <- retype_secure_expr ce e r2;
-      do a' <- retype_secure_binop (Ebinop op) (secure_binop_expr op) t r1' r2';
-      ret_tmp_expr a' (mergePTree tmps1 tmps2)
+      do (a',tmps3) <- retype_secure_binop (Ebinop op) (secure_binop_expr op) t r1' r2';
+      ret_tmp_expr a' (mergePTree tmps1 (mergePTree tmps2 tmps3))
   | Ecast r t =>
-      do (r',tmps) <- retype_secure_expr ce e r;
-      do a' <- secure_cast "Ecast" t r;
-      ret_tmp_expr a' tmps
+      do (r',tmps1) <- retype_secure_expr ce e r;
+      do (a',tmps2) <- secure_cast "Ecast" t r;
+      ret_tmp_expr a' (mergePTree tmps1 tmps2)
   | Eseqand r1 r2 t =>
       do (r1',tmps1) <- retype_secure_expr ce e r1;
       do (r2',tmps2) <- retype_secure_expr ce e r2;
-      do a' <- retype_secure_binop Eseqand (secure_cast_binop secure_eseqand_expr) t r1' r2';
-      ret_tmp_expr a' (mergePTree tmps1 tmps2)
+      do (a',tmps3) <- retype_secure_binop Eseqand (secure_cast_binop secure_eseqand_expr) t r1' r2';
+      ret_tmp_expr a' (mergePTree tmps1 (mergePTree tmps2 tmps3))
   | Eseqor r1 r2 t =>
       do (r1',tmps1) <- retype_secure_expr ce e r1;
       do (r2',tmps2) <- retype_secure_expr ce e r2;
-      do a' <- retype_secure_binop Eseqor (secure_cast_binop secure_eseqor_expr) t r1' r2';
-      ret_tmp_expr a' (mergePTree tmps1 tmps2)
+      do (a',tmps3) <- retype_secure_binop Eseqor (secure_cast_binop secure_eseqor_expr) t r1' r2';
+      ret_tmp_expr a' (mergePTree tmps1 (mergePTree tmps2 tmps3))
   | Econdition r1 r2 r3 t =>
       do (r1',tmps1) <- retype_secure_expr ce e r1;
       do (r2',tmps2) <- retype_secure_expr ce e r2;
       do (r3',tmps3) <- retype_secure_expr ce e r3;
-      do a' <- secure_condition t r1' r2' r3';
-      ret_tmp_expr a' (mergePTree tmps1 (mergePTree tmps2 tmps3))
+      do (a',tmps4) <- secure_condition t r1' r2' r3';
+      ret_tmp_expr a' (mergePTree tmps1 (mergePTree tmps2 (mergePTree tmps3 tmps4)))
   | Esizeof r t => ret_tmp_expr (Esizeof r t) notmps
   | Ealignof r t => ret_tmp_expr (Ealignof r t) notmps
   | Eassign l r t =>
-      do (r',tmps) <- retype_secure_expr ce e r;
-      do r'' <- secure_cast "Eassign" t r';
-      do (a',tmps') <- retype_secure_assign (retype_secure_expr ce e) l r'' t;
-      ret_tmp_expr a' (mergePTree tmps tmps')
+      do (r',tmps1) <- retype_secure_expr ce e r;
+      do (r'',tmps2) <- secure_cast "Eassign" t r';
+      do (a',tmps3) <- retype_secure_assign (retype_secure_expr ce e) l r'' t;
+      ret_tmp_expr a' (mergePTree tmps1 (mergePTree tmps2 tmps3))
   | Eassignop op l r tres t => 
       do (l',tmps1) <- retype_secure_expr ce e l;
       do (r',tmps2) <- retype_secure_expr ce e r;
-      do lr <- retype_secure_binop (Ebinop op) (secure_binop_expr op) tres (Evalof l' (typeof l')) r';
-      do lr' <- secure_cast "Eassignop" t lr;
-      do (a',tmps3) <- retype_secure_assign (retype_secure_expr ce e) l lr' t;
-      ret_tmp_expr a' (mergePTree tmps1 (mergePTree tmps2 tmps3))
+      do (lr,tmps3) <- retype_secure_binop (Ebinop op) (secure_binop_expr op) tres (Evalof l' (typeof l')) r';
+      do (lr',tmps4) <- secure_cast "Eassignop" t lr;
+      do (a',tmps5) <- retype_secure_assign (retype_secure_expr ce e) l lr' t;
+      ret_tmp_expr a' (mergePTree tmps1 (mergePTree tmps2 (mergePTree tmps3 (mergePTree tmps4 tmps5))))
   | Epostincr id r t =>
       do (r',tmps1) <- retype_secure_expr ce e r;
       let one := Eval (Vint Int.one) (type_pint32s) in
-      do radd1' <- retype_secure_binop (Ebinop Oadd) (secure_binop_expr Oadd) t (Evalof r' (typeof r')) one;
-      do rsub1' <- retype_secure_binop (Ebinop Osub) (secure_binop_expr Osub) t (Evalof r' (typeof r')) one;
+      do (radd1',tmps2) <- retype_secure_binop (Ebinop Oadd) (secure_binop_expr Oadd) t (Evalof r' (typeof r')) one;
+      do (rsub1',tmps3) <- retype_secure_binop (Ebinop Osub) (secure_binop_expr Osub) t (Evalof r' (typeof r')) one;
       match id with
       | Incr =>
-          do (ass',tmps2) <- retype_secure_assign (retype_secure_expr ce e) r radd1' t;
-          ret_tmp_expr (Ecomma ass' rsub1' t) (mergePTree tmps1 tmps2)
+          do (ass',tmps4) <- retype_secure_assign (retype_secure_expr ce e) r radd1' t;
+          ret_tmp_expr (Ecomma ass' rsub1' t) (mergePTree tmps1 (mergePTree tmps2 (mergePTree tmps3 tmps4)))
       | Decr =>
-          do (ass',tmps2) <- retype_secure_assign (retype_secure_expr ce e) r rsub1' t;
-          ret_tmp_expr (Ecomma ass' radd1' t) (mergePTree tmps1 tmps2)
+          do (ass',tmps4) <- retype_secure_assign (retype_secure_expr ce e) r rsub1' t;
+          ret_tmp_expr (Ecomma ass' radd1' t) (mergePTree tmps1 (mergePTree tmps2 (mergePTree tmps3 tmps4)))
       end
   | Ecomma r1 r2 t =>
       do (r1',tmps1) <- retype_secure_expr ce e r1;
@@ -518,12 +544,12 @@ Fixpoint retype_secure_expr (ce: composite_env) (e: typenv) (a: expr) : res (exp
   | Ecall rname rargs t =>
       do (rname',tmps1) <- retype_secure_expr ce e rname; 
       do (rargs',tmps2) <- retype_secure_exprlist ce e rargs;
-      do a' <- secure_call rname' rargs';
-      ret_tmp_expr a' (mergePTree tmps1 tmps2)
+      do (a',tmps3) <- secure_call rname' rargs';
+      ret_tmp_expr a' (mergePTree tmps1 (mergePTree tmps2 tmps3))
   | Ebuiltin ef tyargs rargs tyres =>
       do (rargs',tmps1) <- retype_secure_exprlist ce e rargs;
-      do rargs'' <- retype_secure_arguments rargs' tyargs;
-      ret_tmp_expr (Ebuiltin ef tyargs rargs'' tyres) tmps1
+      do (rargs'',tmps2) <- retype_secure_arguments rargs' tyargs;
+      ret_tmp_expr (Ebuiltin ef tyargs rargs'' tyres) (mergePTree tmps1 tmps2)
   | Eloc _ _ _ => Error (msg "Eloc in source")
   | Eparen _ _ _ => Error (msg "Eparen in source")
   end
@@ -540,15 +566,18 @@ Definition retype_secure_public_expr (ce: composite_env) (e: typenv) (a: expr) (
     do _ <- check_public (typeof a) m;
     retype_secure_expr ce e a.
 
+(** frees all temporary variables **)
 Fixpoint free_tmps_expr (e: expr) (tms: list (ident * type)) : expr :=
     match tms with
     | nil => e
-    | cons (n,t) xs => free_tmps_expr (Ecomma e (builtin_delete t (Evar n t)) Tvoid) xs
+    | cons (n,t) xs => free_tmps_expr (Ecomma e (builtin_delete_array t (Evar n t)) Tvoid) xs
     end.
 
+(** secure-typechecks an expression while freeing temporary variables **)
 Definition retype_secure_expr_free (ce: composite_env) (e: typenv) (a: expr) : res (expr * tmps) :=
     do (a',xs) <- retype_secure_expr ce e a;
     let t' := typeof a' in
+    (*
     if complete_type ce t'
         then 
             let x := new_tmp tt in
@@ -557,6 +586,7 @@ Definition retype_secure_expr_free (ce: composite_env) (e: typenv) (a: expr) : r
             let a'' := Ecomma (free_tmps_expr (Eassign v a' t') (PTree.elements xs)) v t' in
             OK (a'',xs')
         else
+    *)
             let a'' := free_tmps_expr a' (PTree.elements xs) in
             OK (a'',xs).
 
@@ -597,9 +627,9 @@ Fixpoint retype_secure_stmt (ce: composite_env) (e: typenv) (rt: type) (s: state
   | Scontinue => OK (Scontinue,notmps)
   | Sreturn None => OK (Sreturn None,notmps)
   | Sreturn (Some a) =>
-      do (a',tmps) <- retype_secure_expr_free ce e a;
-      do a'' <- secure_cast "Sreturn" rt a';
-      OK (Sreturn (Some a''),tmps)
+      do (a',tmps1) <- retype_secure_expr_free ce e a;
+      do (a'',tmps2) <- secure_cast "Sreturn" rt a';
+      OK (Sreturn (Some a''),mergePTree tmps1 tmps2)
   | Sswitch a sl =>
       do (a',tmps1) <- retype_secure_public_expr_free ce e a "switch";
       do (sl',tmps2) <- retype_secure_lblstmts ce e rt sl;
@@ -618,6 +648,7 @@ with retype_secure_lblstmts (ce: composite_env) (e: typenv) (rt: type) (sl: labe
       OK (LScons case s' sl',mergePTree tmps1 tmps2)
   end.
 
+(**
 Definition init_data_to_expr (i: init_data) (sg: signedness) : res expr :=
     match i with
     | Init_int8 i => OK (econst_int i sg)
@@ -628,32 +659,59 @@ Definition init_data_to_expr (i: init_data) (sg: signedness) : res expr :=
     | Init_float64 f => OK (econst_float f)
     | _ => Error (msg "cannot initialize data")
     end.
+**)
+
+(*
+Fixpoint init_secure_array (var: expr) (ty: type) (n: nat) : res (statement * statement) :=
+    match n with
+    S n' => 
+        let varn := Eindex var (Eval (Vint (Int.repr (Z_of_nat n'))) type_pint64u) ty in
+        let sinit := Sdo (Eassign varn (builtin_new_array ty one_expr) ty) in
+        let sfree := Sdo (builtin_delete_array ty varn) in
+        do (sinits,sfrees) <- init_secure_array var ty n';
+        OK (Ssequence sinit sinits,Ssequence sfree sfrees)
+    | _ => OK (Sskip,Sskip)
+    end.
+*)
 
 (* We will not run the typechecker on the generated code *)
 Definition initialize_secure_var (n: ident) (t: type) (inits : list init_data) : res (type * list init_data * (statement * statement)) :=
     if type_is_public t then OK (t,inits,(Sskip,Sskip))
+    (*match t with
+    Tarray ty sz _ => if type_is_public ty
+        then OK (t,inits,(Sskip,Sskip))
+        else do ss <- init_secure_array (Evar n t) ty (Z.to_nat sz); OK (t,inits,ss)
+    | _ => OK (t,inits,(Sskip,Sskip))
+    end*)
     else match t with  
     (Tint _ _ _ | Tlong _ _ | Tfloat _ _) =>
-        let sfree := Sdo (builtin_delete t (Evar n t)) in
+        (*let sfree := Sdo (builtin_delete_array t (Evar n t)) in*)
         match inits with
         | nil =>
-            let blt := builtin_new t in
+            (*let blt := builtin_new_array t one_expr in
             let sinit := Sdo (Eassign (Evar n t) blt t) in
-            OK (t,nil,(sinit,sfree))
+            OK (t,nil,(sinit,sfree))*)
+            OK (t,nil,(Sskip,Sskip))
+        | _ => Error (msg "unsupported secret variable initialization")
+        (**
         | cons i is =>
             do ei <- init_data_to_expr i (type_signedness t);
             do ei' <- secure_cast "initialize" t ei;
             let sinit := Sdo (Eassign (Evar n t) ei' t) in
             OK (t,nil,(sinit,sfree))
+        **)
         end
     | Tpointer _ _ =>
         match inits with
         | nil => OK (t,nil,(Sskip,Sskip))
+        | _ => Error (msg "unsupported secret pointer variable initialization")
+        (**
         | cons i is => 
             do ei <- init_data_to_expr i (type_signedness t);
             do ei' <- secure_cast "initialize" t ei;
             let sinit := Sdo (Eassign (Evar n t) ei' t) in
             OK (t,nil,(sinit,Sskip))
+        **)
         end
     | Tarray bt sz a => match inits with
         | nil => 
@@ -698,7 +756,7 @@ Definition retype_secure_function (ce: composite_env) (e: typenv) (f: function) 
   do (vars',ss) <- retype_secure_fn_vars f.(fn_vars);
   do (s',tmps) <- retype_secure_stmt ce e f.(fn_return) f.(fn_body);
   let vars'' := vars' ++ PTree.elements tmps in
-  let s'' := ssequence (fst ss) (append_to_statement (f.(fn_body)) (snd ss)) in
+  let s'' := ssequence (fst ss) (append_to_statement s' (snd ss)) in
   OK (mkfunction f.(fn_return) f.(fn_callconv) f.(fn_params) vars'' s'').
   
 Definition retype_secure_fundef (ce: composite_env) (e: typenv) (fd: fundef) : res fundef :=
@@ -771,20 +829,20 @@ Definition retype_secure_program (p: program) : res program :=
 **)
 
 Fixpoint remsec_type (t : type) : res type := 
-  let tsec := Tlong Unsigned (make_public_attr (attr_of_type t)) in
+  let ttsec := tsec (make_public_attr (attr_of_type t)) in
   match t with
   | Tvoid => OK Tvoid
-  | Tint _ _ a => if a.(attr_secret) then OK tsec else OK t
-  | Tlong _ a => if a.(attr_secret) then OK tsec else OK t
-  | Tfloat _ a => if a.(attr_secret) then OK tsec else OK t
-  | Tpointer bt a => if a.(attr_secret) then OK tsec else do bt' <- remsec_type bt; OK (Tpointer bt' a)
-  | Tarray bt sz a => if a.(attr_secret) then OK tsec else do bt' <- remsec_type bt; OK (Tarray bt' sz a)
+  | Tint _ _ a => if a.(attr_secret) then OK ttsec else OK t
+  | Tlong _ a => if a.(attr_secret) then OK ttsec else OK t
+  | Tfloat _ a => if a.(attr_secret) then OK ttsec else OK t
+  | Tpointer bt a => if a.(attr_secret) then OK ttsec else do bt' <- remsec_type bt; OK (Tpointer bt' a)
+  | Tarray bt sz a => if a.(attr_secret) then OK ttsec else do bt' <- remsec_type bt; OK (Tarray bt' sz a)
   | Tfunction targs tret cconv =>
       do targs' <- remsec_types targs;
       do tret' <- remsec_type tret;
       OK (Tfunction targs' tret' cconv)
-  | Tstruct n a => if a.(attr_secret) then OK tsec else OK t
-  | Tunion n a => if a.(attr_secret) then OK tsec else OK t
+  | Tstruct n a => if a.(attr_secret) then OK ttsec else OK t
+  | Tunion n a => if a.(attr_secret) then OK ttsec else OK t
   end
 with remsec_types (ts : typelist) : res typelist :=
   match ts with
@@ -794,13 +852,12 @@ with remsec_types (ts : typelist) : res typelist :=
 
 
 Definition remsec_typ_of_type (t: type) : res AST.typ :=
-  let tsec := AST.Tlong
   match t with
   | Tvoid => OK AST.Tint
-  | Tint _ _ a => if a.(attr_secret) then OK tsec else OK AST.Tint
-  | Tlong _ a => if a.(attr_secret) then OK tsec else OK AST.Tlong
-  | Tfloat F32 a => if a.(attr_secret) then OK tsec else OK AST.Tsingle
-  | Tfloat F64 a => if a.(attr_secret) then OK tsec else OK AST.Tfloat
+  | Tint _ _ a => if a.(attr_secret) then OK astsec else OK AST.Tint
+  | Tlong _ a => if a.(attr_secret) then OK astsec else OK AST.Tlong
+  | Tfloat F32 a => if a.(attr_secret) then OK astsec else OK AST.Tsingle
+  | Tfloat F64 a => if a.(attr_secret) then OK astsec else OK AST.Tfloat
   | Tpointer _ _ | Tarray _ _ _ | Tfunction _ _ _ | Tstruct _ _ | Tunion _ _ => OK AST.Tptr
   end.
   

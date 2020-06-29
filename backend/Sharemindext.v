@@ -137,6 +137,18 @@ Definition store_array (ty: type) : Sharemind.code
     :: Ireturn (imm_int64 (Int64.repr 0)) 
     :: nil.
 
+Definition copy (ty: type) : Sharemind.code
+    := Iresizestack (Init_int64 (Int64.repr 2))
+    :: Ipush (transl_string "PD")
+    :: Ipush (imm_int64 (Int64.repr 1))
+    :: Isyscall (transl_ext (new_vec_ext ty)) (Some stack1)
+    :: Ipush (transl_string "PD")
+    :: Ipush stack0
+    :: Ipush stack1
+    :: Isyscall (transl_ext (assign_vec_ext ty)) None
+    :: Ireturn stack1 
+    :: nil.
+
 Definition copy_array (ty: type) : Sharemind.code
     := Ipush (transl_string "PD")
     :: Ipush stack0
@@ -286,7 +298,7 @@ Definition transl_ext_classify := transl_ext_op "classify_" "" classify.
 Definition transl_ext_declassify := transl_ext_op "declassify_" "" declassify.
 Definition transl_ext_new := transl_ext_op "new_" "" new.
 Definition transl_ext_delete := transl_ext_op "delete_" "" delete_array.
-Definition transl_ext_copy := transl_ext_op "copy_" "" copy_array.
+Definition transl_ext_copy := transl_ext_op "copy_" "" copy.
 Definition transl_ext_add := transl_ext_op "add_" "" add.
 
 Definition option_compose {A B:Type} (f : A -> option B) (g : A -> option B) : (A -> option B) :=
